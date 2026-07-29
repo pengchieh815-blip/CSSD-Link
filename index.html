@@ -299,7 +299,7 @@ function renderCssd() {
       const filtered=orders.filter(o=>{ const d=o.time.slice(0,10).replace(/\//g,"-"); return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo); });
       if(!filtered.length){alert("所選範圍內沒有資料");return;}
       const rows=[["單號","時間","單位類型","送洗單位","緊急程度","器械名稱","數量","狀態","備註"]];
-      filtered.forEach(o=>o.items.forEach((it,i)=>rows.push([i===0?o.orderId:"",i===0?o.time:"",i===0?uInfo(o.unitType).label:"",i===0?o.unit:"",i===0?o.urgent:"",it.label,it.qty,i===0?o.status:"",i===0?(o.note||):""])));
+      filtered.forEach(o=>o.items.forEach((it,i)=>rows.push([i===0?o.orderId:"",i===0?o.time:"",i===0?uInfo(o.unitType).label:"",i===0?o.unit:"",i===0?o.urgent:"",it.label,it.qty,i===0?o.status:"",i===0?(o.note||""):""])));
       const csv="\uFEFF"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
       const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download=`CSSD_Link_${dFrom}_${dTo}.csv`;a.click();
     };
