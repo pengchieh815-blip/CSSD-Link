@@ -660,16 +660,23 @@ function renderCssd() {
 
     const makeCard = (order, displayItems, section) => {
       const u2=uInfo(order.unitId);
-      // 根據區塊決定用哪個狀態
-      const isDone = section==="包布類" ? !!order.statusCloth : section==="管帶區" ? !!order.statusOther : !!order.status && order.status==="已完成";
-      const statusColor = isDone ? "#10b981" : "#f59e0b";
-      const statusLabel = isDone ? "✅ 已完成" : "⏳ 待清洗";
+      const clothItems = (order.items||[]).filter(it => CLOTH_ONLY.has(it.label));
+      const otherItems = (order.items||[]).filter(it => !CLOTH_ONLY.has(it.label));
+      const clothDone = clothItems.length===0 || !!order.statusCloth;
+      const otherDone = otherItems.length===0 || !!order.statusOther;
 
+      // 各區塊的完成狀態
+      let isDone;
+      if (section==="包布類") isDone = !!order.statusCloth;
+      else if (section==="管帶區") isDone = !!order.statusOther;
+      else isDone = clothDone && otherDone; // 全部：兩邊都完成才算
+
+      const statusColor = isDone ? "#10b981" : "f59e0b";
       const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":isDone?"#10b981":"#f59e0b")+";"});
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
       const badges = e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
       badges.append(
-        e("span",{style:"background:"+statusColor+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},statusLabel),
+        e("span",{style:"background:"+(isDone?"#10b981":"#f59e0b")+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},isDone?"✅ 已完成":"⏳ 待清洗"),
         e("span",{style:"background:"+u2.color+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},u2.icon+" "+u2.label)
       );
       if(order.urgent==="急件") badges.append(e("span",{style:"background:#ef4444;color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},"🔴 急件"));
@@ -681,19 +688,43 @@ function renderCssd() {
       card.append(itemList);
       if(order.note) card.append(e("div",{style:"font-size:30px;color:#6b7280;margin-bottom:8px;font-style:italic;"},"📝 "+order.note));
       const stRow2 = e("div",{style:"display:flex;gap:8px;"});
-      if (!isDone) {
-        stRow2.append(e("button",{
-          style:"flex:1;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:30px;font-weight:900;",
-          onclick: () => {
-            const update = {};
-            if (section==="包布類") update.statusCloth = true;
-            else if (section==="管帶區") update.statusOther = true;
-            else update.status = "已完成";
-            updateDoc(doc(db,"orders",order._id), update);
+
+      if (section==="全部") {
+        // 全部頁：分別顯示包布和管帶的完成狀態
+        if (clothItems.length>0) {
+          if (!order.statusCloth) {
+            stRow2.append(e("button",{
+              style:"flex:1;padding:14px;border:none;border-radius:10px;background:#f59e0b;color:#fff;font-size:24px;font-weight:900;",
+              onclick: () => updateDoc(doc(db,"orders",order._id),{statusCloth:true})
+            },"🧺 包布完成"));
+          } else {
+            stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#fef9c3;color:#92400e;font-size:24px;font-weight:900;text-align:center;border:2px solid #fde68a;"},"🧺 包布✅"));
           }
-        }, "✅ 已完成"));
+        }
+        if (otherItems.length>0) {
+          if (!order.statusOther) {
+            stRow2.append(e("button",{
+              style:"flex:1;padding:14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-size:24px;font-weight:900;",
+              onclick: () => updateDoc(doc(db,"orders",order._id),{statusOther:true})
+            },"🔧 管帶完成"));
+          } else {
+            stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:24px;font-weight:900;text-align:center;border:2px solid #bfdbfe;"},"🔧 管帶✅"));
+          }
+        }
       } else {
-        stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:30px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
+        if (!isDone) {
+          stRow2.append(e("button",{
+            style:"flex:1;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:30px;font-weight:900;",
+            onclick: () => {
+              const update = {};
+              if (section==="包布類") update.statusCloth = true;
+              else if (section==="管帶區") update.statusOther = true;
+              updateDoc(doc(db,"orders",order._id), update);
+            }
+          }, "✅ 已完成"));
+        } else {
+          stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:30px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
+        }
       }
       card.append(stRow2);
       return card;
