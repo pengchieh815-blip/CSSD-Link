@@ -496,7 +496,8 @@ function renderCssd() {
   let dFrom=today(), dTo=today();
 
   function build() {
-    const CLOTH_ONLY = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
+    const CLOTH_ONLY_CHECK = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
+    const CLOTH_ONLY = CLOTH_ONLY_CHECK;
     const getClothItems = o => (o.items||[]).filter(it => CLOTH_ONLY.has(it.label));
     const getOtherItems = o => (o.items||[]).filter(it => !CLOTH_ONLY.has(it.label));
 
@@ -535,8 +536,14 @@ function renderCssd() {
       e("div",{style:"display:flex;gap:8px;"},
         e("button",{style:"background:rgba(239,68,68,.3);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:30px;font-weight:700;",
           onclick: async () => {
-            const done = S.orders.filter(o=>o.status==="已完成");
-            if (!done.length) { alert("目前沒有已完成的記錄"); return; }
+            const done = S.orders.filter(o=>{
+              const clothItems = (o.items||[]).filter(it => CLOTH_ONLY_CHECK.has(it.label));
+              const otherItems = (o.items||[]).filter(it => !CLOTH_ONLY_CHECK.has(it.label));
+              const clothDone = clothItems.length===0 || !!o.statusCloth;
+              const otherDone = otherItems.length===0 || !!o.statusOther;
+              return clothDone && otherDone;
+            });
+            if (!done.length) { alert("目前沒有全部完成的記錄"); return; }
             if (!confirm("確定要清除全部 "+done.length+" 筆已完成記錄？")) return;
             for (const o of done) await deleteDoc(doc(db,"orders",o._id));
           }
@@ -651,13 +658,18 @@ function renderCssd() {
 
     if (!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:30px;"},"目前沒有符合條件的記錄"));
 
-    const makeCard = (order, displayItems) => {
-      const u2=uInfo(order.unitId), sc=SC[order.status]||SC["待清洗"];
-      const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":"transparent")+";"});
+    const makeCard = (order, displayItems, section) => {
+      const u2=uInfo(order.unitId);
+      // 根據區塊決定用哪個狀態
+      const isDone = section==="包布類" ? !!order.statusCloth : section==="管帶區" ? !!order.statusOther : !!order.status && order.status==="已完成";
+      const statusColor = isDone ? "#10b981" : "#f59e0b";
+      const statusLabel = isDone ? "✅ 已完成" : "⏳ 待清洗";
+
+      const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":isDone?"#10b981":"#f59e0b")+";"});
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
       const badges = e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
       badges.append(
-        e("span",{style:"background:"+sc.c+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},sc.i+" "+order.status),
+        e("span",{style:"background:"+statusColor+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},statusLabel),
         e("span",{style:"background:"+u2.color+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},u2.icon+" "+u2.label)
       );
       if(order.urgent==="急件") badges.append(e("span",{style:"background:#ef4444;color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},"🔴 急件"));
@@ -669,10 +681,16 @@ function renderCssd() {
       card.append(itemList);
       if(order.note) card.append(e("div",{style:"font-size:30px;color:#6b7280;margin-bottom:8px;font-style:italic;"},"📝 "+order.note));
       const stRow2 = e("div",{style:"display:flex;gap:8px;"});
-      if (order.status !== "已完成") {
+      if (!isDone) {
         stRow2.append(e("button",{
           style:"flex:1;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:30px;font-weight:900;",
-          onclick: () => updateDoc(doc(db,"orders",order._id),{status:"已完成"})
+          onclick: () => {
+            const update = {};
+            if (section==="包布類") update.statusCloth = true;
+            else if (section==="管帶區") update.statusOther = true;
+            else update.status = "已完成";
+            updateDoc(doc(db,"orders",order._id), update);
+          }
         }, "✅ 已完成"));
       } else {
         stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:30px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
@@ -681,7 +699,7 @@ function renderCssd() {
       return card;
     };
 
-    shown.forEach(order => body.append(makeCard(order, getDisplayItems(order))));
+    shown.forEach(order => body.append(makeCard(order, getDisplayItems(order), tabF)));
 
     root.append(body);
     return root;
