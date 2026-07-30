@@ -723,4 +723,46 @@ function renderVendor() {
       }
     },"送出送洗申請 →");
     body.append(btn);
-    if(!canSubmit) body.app
+    if(!canSubmit) body.append(e("p",{style:"text-align:center;color:#9ca3af;font-size:20px;margin-top:8px;"},"請填寫所有 * 必填欄位"));
+
+    root.append(body);
+    return root;
+  }
+  function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
+  return build();
+}
+
+/* ─── VENDOR CSSD ─── */
+function renderVendorCssd() {
+  const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:#b45309;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+    e("div",{style:"font-size:26px;font-weight:800;"},"🏭 廠商送洗管理"),
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"🏠 首頁")
+  ));
+  const body=e("div",{style:"padding:14px 14px 50px;"});
+  body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:26px;"},"⏳ 載入中…"));
+  root.append(body);
+  onSnapshot(query(collection(db,"vendor_orders"),orderBy("ts","desc")),snap=>{
+    body.innerHTML="";
+    const orders=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    if(!orders.length){body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:26px;"},"目前沒有廠商送洗記錄"));return;}
+    orders.forEach(o=>{
+      const card=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:5px solid "+(o.status==="已完成"?"#10b981":"#b45309")+";"});
+      card.append(e("div",{style:"display:flex;justify-content:space-between;margin-bottom:8px;"},e("span",{style:"background:"+(o.status==="已完成"?"#10b981":"#b45309")+";color:#fff;font-size:22px;font-weight:700;padding:4px 12px;border-radius:10px;"},o.status||"待處理"),e("span",{style:"font-size:20px;color:#9ca3af;"},o.time2||"")));
+      card.append(e("div",{style:"font-size:24px;font-weight:800;color:#1e293b;margin-bottom:4px;"},"🏭 "+o.vendorName));
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:4px;"},"👤 "+o.contact+"　📞 "+o.phone));
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:4px;"},"🔧 "+o.itemType));
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:10px;"},"📅 寄銷："+o.date+(o.time?" "+o.time:"")+"　預計使用："+o.useDate));
+      if(o.status!=="已完成"){card.append(e("button",{style:"width:100%;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:26px;font-weight:900;",onclick:()=>updateDoc(doc(db,"vendor_orders",o._id),{status:"已完成"})},"✅ 已完成"));}
+      else{card.append(e("div",{style:"width:100%;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:26px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));}
+      body.append(card);
+    });
+  });
+  return root;
+}
+
+render();
+</script>
+</body>
+</html>
