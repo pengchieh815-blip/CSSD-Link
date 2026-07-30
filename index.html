@@ -327,6 +327,22 @@ function renderForm() {
   // ── 器械品項
   const itemsWrap = e("div",{});
 
+  // 牙科特殊處理：只顯示牙科包
+  if (S.unitId === "dental") {
+    const qty = cart["牙科包"]||0;
+    const dentalBox = e("div",{style:"background:#fff;border:2.5px solid "+u.color+";border-radius:14px;padding:20px;text-align:center;"});
+    dentalBox.append(e("div",{style:"font-size:30px;font-weight:800;color:#1e293b;margin-bottom:16px;"},"🦷 牙科包"));
+    const qRow = e("div",{style:"display:flex;align-items:center;justify-content:center;gap:16px;"});
+    qRow.append(
+      e("button",{style:"width:50px;height:50px;border-radius:50%;border:2px solid #d1d5db;background:#fff;font-size:30px;font-weight:700;",onclick:()=>setQty("牙科包",qty-1)},"－"),
+      e("span",{style:"font-size:40px;font-weight:900;min-width:50px;text-align:center;color:"+u.color+";"},qty||0),
+      e("button",{style:"width:50px;height:50px;border-radius:50%;border:none;background:"+u.color+";color:#fff;font-size:30px;font-weight:700;",onclick:()=>setQty("牙科包",qty+1)},"＋")
+    );
+    dentalBox.append(qRow);
+    itemsWrap.append(dentalBox);
+    body.append(sec("器械品項與數量"+(total>0?" （已選 "+total+" 件）":""), true, itemsWrap));
+  } else {
+
   // Cart display
   if (total > 0) {
     const cartBox = e("div",{style:"background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:14px;"});
@@ -500,7 +516,9 @@ function renderForm() {
     });
   }
 
-  body.append(sec("器械品項與數量"+(total>0?" （已選 "+total+" 件）":""), true, itemsWrap));
+  if (S.unitId !== "dental") {
+    body.append(sec("器械品項與數量"+(total>0?" （已選 "+total+" 件）":""), true, itemsWrap));
+  }
 
   // Note
   const noteEl = e("textarea",{style:"width:100%;padding:12px 14px;border:2.5px solid #d1d5db;border-radius:12px;font-size:30px;font-family:inherit;resize:none;",rows:"2",placeholder:"特殊狀況、污染程度、急用時間…"});
@@ -687,16 +705,30 @@ function renderCssd() {
           const allOrders2 = [...orders, ...archOrders2];
           const filtered = allOrders2.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
           if(!filtered.length){alert("所選範圍內沒有資料");return;}
-          // 統計每個品項總量
-          const totals = {};
-          filtered.forEach(o=>{(o.items||[]).forEach(it=>{totals[it.label]=(totals[it.label]||0)+Number(it.qty);});});
-          const rows=[["器械名稱","總數量"]];
-          Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([label,qty])=>rows.push([label,qty]));
+
+          // 依單位分組統計
+          const groups = {};
+          filtered.forEach(o=>{
+            const key = (o.unitLabel||"其他")+"_"+(o.sub||"");
+            if(!groups[key]) groups[key]={unitLabel:o.unitLabel||"",sub:o.sub||"",totals:{}};
+            (o.items||[]).forEach(it=>{
+              groups[key].totals[it.label]=(groups[key].totals[it.label]||0)+Number(it.qty);
+            });
+          });
+
           let csv="\uFEFF";
-          rows.forEach(r=>{csv+=r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")+"\r\n";});
+          Object.values(groups).forEach(g=>{
+            csv+='"【'+g.unitLabel+" - "+g.sub+'】"\r\n';
+            csv+='"器械名稱","總數量"\r\n';
+            Object.entries(g.totals).sort((a,b)=>b[1]-a[1]).forEach(([label,qty])=>{
+              csv+='"'+label+'","'+qty+'"\r\n';
+            });
+            csv+="\r\n";
+          });
+
           const a=document.createElement("a");
           a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-          a.download="CSSD_品項統計_"+dFrom+"_"+dTo+".csv";
+          a.download="CSSD_品項統計_依單位_"+dFrom+"_"+dTo+".csv";
           a.click();
         }
       },"📊 下載品項統計"));
