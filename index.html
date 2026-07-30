@@ -603,21 +603,107 @@ function renderSettings() {
 function renderVendor() {
   let VF={date:today(),time:"",vendorName:"",contact:"",phone:"",itemType:"",useDate:"",done:false};
   function build(){
-    const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
-    root.append(e("div",{style:"background:#b45309;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
-      e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
-      e("div",{style:"font-size:26px;font-weight:800;"},"🏭 院外廠商送洗登記"),
-      e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:22px;font-weight:700;",onclick:()=>{const pw=prompt("請輸入供應室密碼：");if(pw==="2600"){S.view="vendor_cssd";render();}else if(pw!==null)alert("密碼錯誤！");}},"📋 管理")
+    const root=e("div",{style:"min-height:100vh;background:#fff7ed;"});
+
+    // Header
+    root.append(e("div",{style:"background:linear-gradient(135deg,#b45309,#d97706);color:#fff;padding:24px 20px;text-align:center;box-shadow:0 4px 12px rgba(180,83,9,.3);"},
+      e("div",{style:"font-size:44px;margin-bottom:6px;"},"🏭"),
+      e("div",{style:"font-size:28px;font-weight:900;"},"院外廠商送洗登記"),
+      e("div",{style:"font-size:20px;color:#fde68a;margin-top:4px;"},"天主教耕莘醫療財團法人耕莘醫院 供應室")
     ));
-    if(VF.done){root.append(e("div",{style:"display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"},e("div",{style:"font-size:60px;margin-bottom:12px;"},"✅"),e("div",{style:"font-size:28px;font-weight:900;color:#065f46;margin-bottom:8px;"},"送洗申請已送出！"),e("button",{style:"margin-top:16px;padding:16px 32px;background:#b45309;color:#fff;border:none;border-radius:12px;font-size:26px;font-weight:800;",onclick:()=>{S.view="home";render();}},"返回首頁")));return root;}
-    const body=e("div",{style:"padding:14px 14px 50px;"});
-    const sec=(l,req,el)=>e("div",{style:"margin-bottom:16px;"},e("div",{style:"font-size:24px;font-weight:800;margin-bottom:6px;"},l,req?e("span",{style:"color:#ef4444;margin-left:3px;"},"*"):null),el);
-    const mk=(ph,val,key,type="text")=>{const el=e("input",{type,style:"width:100%;padding:12px;border:2.5px solid #d1d5db;border-radius:12px;font-size:24px;font-family:inherit;",placeholder:ph,value:val});el.addEventListener("input",ev=>{VF[key]=ev.target.value;});el.addEventListener("change",ev=>{VF[key]=ev.target.value;});return el;};
-    body.append(sec("寄銷日期",true,mk("",VF.date,"date","date")),sec("時間",true,mk("例：14:30",VF.time,"time")),sec("廠商名稱",true,mk("請輸入廠商名稱",VF.vendorName,"vendorName")),sec("聯絡人",true,mk("請輸入聯絡人",VF.contact,"contact")),sec("電話",true,mk("請輸入電話",VF.phone,"phone")),sec("器械種類",true,mk("請輸入器械種類",VF.itemType,"itemType")),sec("器械預計使用日期",true,mk("",VF.useDate,"useDate","date")));
-    const canSubmit=VF.vendorName&&VF.contact&&VF.phone&&VF.itemType&&VF.useDate;
-    const btn=e("button",{style:"width:100%;padding:16px;background:"+(canSubmit?"#b45309":"#9ca3af")+";color:#fff;border:none;border-radius:12px;font-size:26px;font-weight:900;",onclick:async()=>{if(!canSubmit)return;try{await addDoc(collection(db,"vendor_orders"),{date:VF.date,time:VF.time,vendorName:VF.vendorName,contact:VF.contact,phone:VF.phone,itemType:VF.itemType,useDate:VF.useDate,status:"待處理",ts:Date.now(),time2:now()});VF.done=true;rerender();}catch(err){alert("送出失敗："+err.message);}}},"送出送洗申請");
+
+    // 管理入口（右上小按鈕）
+    const mgBtn=e("button",{style:"position:fixed;top:14px;right:14px;background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:20px;font-weight:700;z-index:20;",onclick:()=>{const pw=prompt("請輸入供應室密碼：");if(pw==="2600"){S.view="vendor_cssd";render();}else if(pw!==null)alert("密碼錯誤！");}},
+      "📋 管理"
+    );
+    root.append(mgBtn);
+
+    if(VF.done){
+      root.append(e("div",{style:"display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"},
+        e("div",{style:"font-size:80px;margin-bottom:16px;"},"✅"),
+        e("div",{style:"font-size:28px;font-weight:900;color:#065f46;margin-bottom:8px;"},"送洗申請已送出！"),
+        e("div",{style:"font-size:22px;color:#6b7280;margin-bottom:24px;"},"供應室已收到通知，謝謝！"),
+        e("button",{style:"padding:16px 40px;background:#b45309;color:#fff;border:none;border-radius:14px;font-size:24px;font-weight:800;",onclick:()=>{VF={date:today(),time:"",vendorName:"",contact:"",phone:"",itemType:"",useDate:"",done:false};rerender();}},"再次登記"),
+        e("button",{style:"margin-top:10px;padding:12px 40px;background:#fff;color:#b45309;border:2px solid #b45309;border-radius:14px;font-size:22px;font-weight:700;",onclick:()=>{S.view="home";render();}},"返回首頁")
+      ));
+      return root;
+    }
+
+    const body=e("div",{style:"padding:20px 16px 60px;"});
+
+    // Card wrapper
+    const card=e("div",{style:"background:#fff;border-radius:20px;padding:24px;box-shadow:0 4px 20px rgba(180,83,9,.1);border:2px solid #fed7aa;"});
+
+    const field=(icon,label,req,content)=>{
+      const wrap=e("div",{style:"margin-bottom:20px;"});
+      wrap.append(e("div",{style:"display:flex;align-items:center;gap:8px;margin-bottom:8px;"},
+        e("span",{style:"font-size:22px;"},icon),
+        e("span",{style:"font-size:22px;font-weight:800;color:#1e293b;"},label),
+        req?e("span",{style:"color:#ef4444;font-size:18px;"},"*"):null
+      ));
+      wrap.append(content);
+      return wrap;
+    };
+
+    const inp=(ph,val,key,type="text")=>{
+      const el=e("input",{type,style:"width:100%;padding:14px 16px;border:2px solid #e5e7eb;border-radius:12px;font-size:22px;font-family:inherit;background:#f9fafb;",placeholder:ph,value:val});
+      el.addEventListener("input",ev=>{VF[key]=ev.target.value;});
+      el.addEventListener("change",ev=>{VF[key]=ev.target.value;});
+      return el;
+    };
+
+    // 日期時間一排
+    const dateTimeRow=e("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"});
+    dateTimeRow.append(
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"📅"),e("span",{style:"font-size:22px;font-weight:800;"},"寄銷日期"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("",VF.date,"date","date")
+      ),
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"🕐"),e("span",{style:"font-size:22px;font-weight:800;"},"時間"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("14:30",VF.time,"time")
+      )
+    );
+    card.append(dateTimeRow);
+
+    card.append(field("🏭","廠商名稱",true,inp("請輸入廠商名稱",VF.vendorName,"vendorName")));
+    
+    // 聯絡人電話一排
+    const contactRow=e("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"});
+    contactRow.append(
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"👤"),e("span",{style:"font-size:22px;font-weight:800;"},"聯絡人"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("聯絡人姓名",VF.contact,"contact")
+      ),
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"📞"),e("span",{style:"font-size:22px;font-weight:800;"},"電話"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("聯絡電話",VF.phone,"phone")
+      )
+    );
+    card.append(contactRow);
+
+    card.append(field("🔧","器械種類",true,inp("請輸入器械種類名稱",VF.itemType,"itemType")));
+    card.append(field("📆","器械預計使用日期",true,inp("",VF.useDate,"useDate","date")));
+
+    body.append(card);
+
+    const canSubmit=VF.vendorName&&VF.contact&&VF.phone&&VF.itemType&&VF.useDate&&VF.time;
+    const btn=e("button",{
+      style:"width:100%;margin-top:16px;padding:18px;background:"+(canSubmit?"linear-gradient(135deg,#b45309,#d97706)":"#9ca3af")+";color:#fff;border:none;border-radius:14px;font-size:26px;font-weight:900;box-shadow:"+(canSubmit?"0 4px 12px rgba(180,83,9,.3)":"none")+";",
+      onclick:async()=>{
+        if(!canSubmit) return;
+        try{
+          await addDoc(collection(db,"vendor_orders"),{date:VF.date,time:VF.time,vendorName:VF.vendorName,contact:VF.contact,phone:VF.phone,itemType:VF.itemType,useDate:VF.useDate,status:"待處理",ts:Date.now(),time2:now()});
+          VF.done=true;rerender();
+        }catch(err){alert("送出失敗："+err.message);}
+      }
+    },"送出送洗申請 →");
     if(!canSubmit) btn.disabled=true;
-    body.append(btn);root.append(body);return root;
+    body.append(btn);
+    if(!canSubmit) body.append(e("p",{style:"text-align:center;color:#9ca3af;font-size:20px;margin-top:8px;"},"請填寫所有 * 必填欄位"));
+
+    root.append(body);
+    return root;
   }
   function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
   return build();
