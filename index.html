@@ -194,7 +194,7 @@ function renderHome() {
   // ── 其他單位
   body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #10b981;"},"🏪 其他單位"));
   const otherCard = e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);"});
-  const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"});
+  const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"});
   OTHER_UNITS.forEach(u => {
     const btn = e("button",{
       style:"background:"+u.light+";border:2px solid "+u.color+";border-radius:12px;width:100%;padding-bottom:100%;position:relative;display:block;",
