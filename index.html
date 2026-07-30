@@ -196,16 +196,10 @@ function renderHome() {
   const wardCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const wardGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   WARD_UNIT.subs.forEach(sub => {
-    const wrap = e("div",{style:"display:flex;gap:4px;align-items:center;"});
-    wrap.append(e("button",{
+    wardGrid.append(e("button",{
       style:"padding:10px 16px;border:2px solid #2563eb;border-radius:22px;background:#eff6ff;color:#1d4ed8;font-size:30px;font-weight:700;",
       onclick: () => { F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId="ward"; S.view="form"; render(); }
     }, sub));
-    wrap.append(e("button",{
-      style:"padding:6px 10px;border:2px solid #93c5fd;border-radius:16px;background:#fff;color:#2563eb;font-size:20px;font-weight:700;",
-      onclick: () => { S.histSub=sub; S.histUnitId="ward"; S.view="history"; render(); }
-    },"📋"));
-    wardGrid.append(wrap);
   });
   wardCard.append(wardGrid);
   body.append(wardCard);
@@ -215,16 +209,10 @@ function renderHome() {
   const opdCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const opdGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   OPD_UNIT.subs.forEach(sub => {
-    const wrap = e("div",{style:"display:flex;gap:4px;align-items:center;"});
-    wrap.append(e("button",{
+    opdGrid.append(e("button",{
       style:"padding:10px 16px;border:2px solid #7c3aed;border-radius:22px;background:#f5f3ff;color:#6d28d9;font-size:30px;font-weight:700;",
       onclick: () => { F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId="opd"; S.view="form"; render(); }
     }, sub));
-    wrap.append(e("button",{
-      style:"padding:6px 10px;border:2px solid #c4b5fd;border-radius:16px;background:#fff;color:#7c3aed;font-size:20px;font-weight:700;",
-      onclick: () => { S.histSub=sub; S.histUnitId="opd"; S.view="history"; render(); }
-    },"📋"));
-    opdGrid.append(wrap);
   });
   opdCard.append(opdGrid);
   body.append(opdCard);
@@ -241,11 +229,7 @@ function renderHome() {
       e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;"},
         e("div",{style:"font-size:30px;"},u.icon),
         e("div",{style:"font-size:30px;font-weight:800;color:"+u.color+";text-align:center;"},u.label)
-      ),
-      e("button",{
-        style:"position:absolute;top:4px;right:4px;background:#fff;border:2px solid "+u.color+";border-radius:10px;color:"+u.color+";font-size:16px;font-weight:700;padding:2px 6px;z-index:1;",
-        onclick:(ev)=>{ev.stopPropagation();S.histSub=u.subs[0];S.histUnitId=u.id;S.view="history";render();}
-      },"📋")
+      )
     );
     if (pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:30px;font-weight:700;padding:1px 6px;border-radius:8px;"},pend[u.id]));
     otherGrid.append(btn);
@@ -286,7 +270,9 @@ function renderForm() {
   const hdr = e("div",{style:"background:"+u.color+";color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
     e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
     e("div",{style:"font-size:30px;font-weight:800;"},u.icon+" "+u.label+" 送洗登記"),
-    e("div",{style:"width:70px;"})
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",
+      onclick:()=>{S.histSub=sub;S.histUnitId=S.unitId;S.view="history";render();}
+    },"📋 歷史")
   );
   root.append(hdr);
 
