@@ -712,7 +712,6 @@ function renderCssd() {
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
       const badges = e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
       badges.append(
-        e("span",{style:"background:"+(isDone?"#10b981":"#f59e0b")+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},isDone?"✅ 已完成":"⏳ 待清洗"),
         e("span",{style:"background:"+u2.color+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},u2.icon+" "+u2.label)
       );
       if(order.urgent==="急件") badges.append(e("span",{style:"background:#ef4444;color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},"🔴 急件"));
