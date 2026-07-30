@@ -496,8 +496,9 @@ function renderCssd() {
   let dFrom=today(), dTo=today();
 
   function build() {
-    const CLOTH_ITEMS = new Set(CATS.find(c=>c.id==="cloth").items);
-    const isClothOrder = o => (o.items||[]).some(it => CLOTH_ITEMS.has(it.label));
+    // 只有這些品項才算包布類
+    const CLOTH_ONLY = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
+    const isClothOrder = o => (o.items||[]).some(it => CLOTH_ONLY.has(it.label));
 
     const orders = S.orders;
     const sorted = [...orders].sort((a,b)=>{
