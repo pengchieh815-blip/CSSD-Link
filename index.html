@@ -143,8 +143,8 @@ function renderHome() {
   // Header
   root.append(e("div",{style:"background:linear-gradient(135deg,#1e293b,#0f4c81);color:#fff;padding:24px 20px;text-align:center;"},
     e("div",{style:"font-size:40px;margin-bottom:6px;"},"🏥"),
-    e("div",{style:"font-size:24px;font-weight:900;letter-spacing:1px;"},"CSSD Link"),
-    e("div",{style:"font-size:14px;color:#93c5fd;margin-top:4px;letter-spacing:2px;"},"器械送洗登記系統")
+    e("div",{style:"font-size:18px;font-weight:900;letter-spacing:1px;line-height:1.4;"},"天主教耕莘醫療財團法人耕莘醫院"),
+    e("div",{style:"font-size:16px;color:#93c5fd;margin-top:6px;letter-spacing:2px;font-weight:700;"},"器械登記系統")
   ));
 
   const body = e("div",{style:"padding:16px 14px 50px;"});
@@ -197,11 +197,11 @@ function renderHome() {
   const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(3,1fr);gap:10px;"});
   OTHER_UNITS.forEach(u => {
     const btn = e("button",{
-      style:"background:"+u.light+";border:2px solid "+u.color+";border-radius:12px;padding:14px 6px;text-align:center;position:relative;",
+      style:"background:"+u.light+";border:2px solid "+u.color+";border-radius:12px;aspect-ratio:1/1;text-align:center;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;",
       onclick: () => { F={sub:u.subs[0],urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId=u.id; S.view="form"; render(); }
     },
-      e("div",{style:"font-size:24px;margin-bottom:4px;"},u.icon),
-      e("div",{style:"font-size:14px;font-weight:800;color:"+u.color+";"},u.label)
+      e("div",{style:"font-size:28px;"},u.icon),
+      e("div",{style:"font-size:18px;font-weight:800;color:"+u.color+";"},u.label)
     );
     if (pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;"},pend[u.id]));
     otherGrid.append(btn);
