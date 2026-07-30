@@ -496,10 +496,9 @@ function renderCssd() {
   let dFrom=today(), dTo=today();
 
   function build() {
-    // 只有這些品項才算包布類
     const CLOTH_ONLY = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
-    // 純包布類：所有品項都在包布清單內
-    const isClothOrder = o => (o.items||[]).length > 0 && (o.items||[]).every(it => CLOTH_ONLY.has(it.label));
+    const getClothItems = o => (o.items||[]).filter(it => CLOTH_ONLY.has(it.label));
+    const getOtherItems = o => (o.items||[]).filter(it => !CLOTH_ONLY.has(it.label));
 
     const orders = S.orders;
     const sorted = [...orders].sort((a,b)=>{
@@ -507,13 +506,27 @@ function renderCssd() {
       if(b.urgent==="急件"&&a.urgent!=="急件") return 1;
       return (b.ts||0)-(a.ts||0);
     });
-    const shown = sorted.filter(o=>{
+
+    // 篩選基本條件
+    const baseShown = sorted.filter(o=>{
       if(utF!=="全部"&&o.unitId!==utF) return false;
       if(urgO&&o.urgent!=="急件") return false;
-      if(tabF==="包布類"&&!isClothOrder(o)) return false;
-      if(tabF==="管帶區"&&isClothOrder(o)) return false;
       return true;
     });
+
+    // 各tab顯示的單和品項
+    const shown = baseShown.filter(o=>{
+      if(tabF==="包布類") return getClothItems(o).length > 0;
+      if(tabF==="管帶區") return getOtherItems(o).length > 0;
+      return true;
+    });
+
+    // 根據tab決定顯示哪些品項
+    const getDisplayItems = (o) => {
+      if(tabF==="包布類") return getClothItems(o);
+      if(tabF==="管帶區") return getOtherItems(o);
+      return o.items||[];
+    };
 
     const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
     root.append(e("div",{style:"background:#1e293b;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
@@ -638,7 +651,7 @@ function renderCssd() {
 
     if (!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:30px;"},"目前沒有符合條件的記錄"));
 
-    const makeCard = (order) => {
+    const makeCard = (order, displayItems) => {
       const u2=uInfo(order.unitId), sc=SC[order.status]||SC["待清洗"];
       const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":"transparent")+";"});
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
@@ -650,9 +663,9 @@ function renderCssd() {
       if(order.urgent==="急件") badges.append(e("span",{style:"background:#ef4444;color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},"🔴 急件"));
       cardHdr.append(badges, e("span",{style:"font-size:30px;color:#9ca3af;white-space:nowrap;margin-left:4px;"},order.time||""));
       card.append(cardHdr);
-      card.append(e("div",{style:"font-size:30px;color:#374151;margin-bottom:8px;font-weight:600;"},"📍 "+(order.sub||"")+"  ",e("span",{style:"font-size:30px;color:#d1d5db;"},order._id||"")));
+      card.append(e("div",{style:"font-size:30px;color:#374151;margin-bottom:8px;font-weight:600;"},"📍 "+(order.sub||"")));
       const itemList = e("div",{style:"display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"});
-      (order.items||[]).forEach(it=>itemList.append(e("span",{style:"border:2px solid "+u2.color+";border-radius:8px;padding:4px 10px;font-size:30px;font-weight:700;color:"+u2.color+";"},it.label+" × "+it.qty)));
+      displayItems.forEach(it=>itemList.append(e("span",{style:"border:2px solid "+u2.color+";border-radius:8px;padding:4px 10px;font-size:30px;font-weight:700;color:"+u2.color+";"},it.label+" × "+it.qty)));
       card.append(itemList);
       if(order.note) card.append(e("div",{style:"font-size:30px;color:#6b7280;margin-bottom:8px;font-style:italic;"},"📝 "+order.note));
       const stRow2 = e("div",{style:"display:flex;gap:8px;"});
@@ -668,7 +681,7 @@ function renderCssd() {
       return card;
     };
 
-    shown.forEach(order => body.append(makeCard(order)));
+    shown.forEach(order => body.append(makeCard(order, getDisplayItems(order))));
 
     root.append(body);
     return root;
