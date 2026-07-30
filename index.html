@@ -567,8 +567,8 @@ function renderCssd() {
             const done = S.orders.filter(o=>{
               const ci = (o.items||[]).filter(it => CLOTH_SET.has(it.label));
               const oi = (o.items||[]).filter(it => !CLOTH_SET.has(it.label));
-              const clothOk = ci.length===0 || o.statusCloth==="等待送回";
-              const otherOk = oi.length===0 || o.statusOther==="等待送回";
+              const clothOk = ci.length===0 || o.statusCloth==="等待送回" || o.statusCloth===true;
+              const otherOk = oi.length===0 || o.statusOther==="等待送回" || o.statusOther===true;
               return clothOk && otherOk;
             });
             if (!done.length) { alert("目前沒有兩邊都到等待送回的記錄"); return; }
@@ -698,13 +698,13 @@ function renderCssd() {
       const u2=uInfo(order.unitId);
       const clothItems = (order.items||[]).filter(it => CLOTH_ONLY.has(it.label));
       const otherItems = (order.items||[]).filter(it => !CLOTH_ONLY.has(it.label));
-      const clothDone = clothItems.length===0 || order.statusCloth==="等待送回";
-      const otherDone = otherItems.length===0 || order.statusOther==="等待送回";
+      const clothDone = clothItems.length===0 || order.statusCloth==="等待送回" || order.statusCloth===true;
+      const otherDone = otherItems.length===0 || order.statusOther==="等待送回" || order.statusOther===true;
 
       // 各區塊的完成狀態
       let isDone;
-      if (section==="包布類") isDone = !!order.statusCloth;
-      else if (section==="管帶區") isDone = !!order.statusOther;
+      if (section==="包布類") isDone = order.statusCloth==="等待送回" || order.statusCloth===true;
+      else if (section==="管帶區") isDone = order.statusOther==="等待送回" || order.statusOther===true;
       else isDone = clothDone && otherDone; // 全部：兩邊都完成才算
 
       const statusColor = isDone ? "#10b981" : "f59e0b";
