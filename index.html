@@ -571,6 +571,9 @@ function renderCssd() {
               const otherOk = oi.length===0 || o.statusOther==="等待送回" || o.statusOther===true;
               return clothOk && otherOk;
             });
+            // 除錯：顯示每筆的狀態
+            const debugInfo = S.orders.map(o=>"sub:"+o.sub+" cloth:"+JSON.stringify(o.statusCloth)+" other:"+JSON.stringify(o.statusOther)).join("\n");
+            alert("目前狀態：\n"+debugInfo);
             if (!done.length) { alert("目前沒有兩邊都到等待送回的記錄"); return; }
             if (!confirm("確定要清除全部 "+done.length+" 筆記錄？\n（資料會備份到報表，可繼續查詢）")) return;
             await archiveAndDelete(done);
