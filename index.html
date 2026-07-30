@@ -468,10 +468,10 @@ function renderCssd() {
 
     const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
     root.append(e("div",{style:"background:#1e293b;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
-      e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:15px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
-      e("div",{style:"font-size:17px;font-weight:800;"},"📋 供應室管理"),
+      e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+      e("div",{style:"font-size:30px;font-weight:800;"},"📋 供應室管理"),
       e("div",{style:"display:flex;gap:8px;"},
-        e("button",{style:"background:rgba(239,68,68,.3);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:700;",
+        e("button",{style:"background:rgba(239,68,68,.3);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:30px;font-weight:700;",
           onclick: async () => {
             const done = S.orders.filter(o=>o.status==="已完成");
             if (!done.length) { alert("目前沒有已完成的記錄"); return; }
@@ -479,7 +479,7 @@ function renderCssd() {
             for (const o of done) await deleteDoc(doc(db,"orders",o._id));
           }
         },"🗑️ 清除已完成"),
-        e("button",{style:"background:rgba(16,185,129,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:700;",onclick:()=>{showExp=!showExp;rerender();}},"📥 報表")
+        e("button",{style:"background:rgba(16,185,129,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:30px;font-weight:700;",onclick:()=>{showExp=!showExp;rerender();}},"📥 報表")
       )
     ));
 
@@ -487,12 +487,12 @@ function renderCssd() {
 
     if (showExp) {
       const expBox = e("div",{style:"background:#fff;border:2px solid #10b981;border-radius:12px;padding:14px;margin-bottom:12px;"});
-      expBox.append(e("div",{style:"font-size:16px;font-weight:800;color:#065f46;margin-bottom:4px;"},"📥 下載 CSV 報表"));
-      expBox.append(e("div",{style:"font-size:13px;color:#6b7280;margin-bottom:10px;"},"匯出後可直接用 Excel 開啟"));
+      expBox.append(e("div",{style:"font-size:30px;font-weight:800;color:#065f46;margin-bottom:4px;"},"📥 下載 CSV 報表"));
+      expBox.append(e("div",{style:"font-size:30px;color:#6b7280;margin-bottom:10px;"},"匯出後可直接用 Excel 開啟"));
       const quickRow = e("div",{style:"display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;"});
       [["今天","today"],["本週","week"],["本月","month"]].forEach(([label,key]) => {
         quickRow.append(e("button",{
-          style:"padding:8px 16px;border:2px solid #10b981;border-radius:20px;background:#ecfdf5;color:#065f46;font-size:14px;font-weight:700;",
+          style:"padding:8px 16px;border:2px solid #10b981;border-radius:20px;background:#ecfdf5;color:#065f46;font-size:30px;font-weight:700;",
           onclick: () => {
             const t=new Date(),p=n=>String(n).padStart(2,"0"),fmt=d=>d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
             if(key==="today"){dFrom=fmt(t);dTo=fmt(t);}
@@ -504,16 +504,16 @@ function renderCssd() {
       });
       expBox.append(quickRow);
       const dateRow = e("div",{style:"display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"});
-      const dFromInput = e("input",{type:"date",style:"border:2px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:15px;font-family:inherit;",value:dFrom});
-      const dToInput   = e("input",{type:"date",style:"border:2px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:15px;font-family:inherit;",value:dTo});
+      const dFromInput = e("input",{type:"date",style:"border:2px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:30px;font-family:inherit;",value:dFrom});
+      const dToInput   = e("input",{type:"date",style:"border:2px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:30px;font-family:inherit;",value:dTo});
       dFromInput.addEventListener("change", ev=>{dFrom=ev.target.value;rerender();});
       dToInput.addEventListener("change",   ev=>{dTo=ev.target.value;rerender();});
-      dateRow.append(e("span",{style:"font-size:15px;font-weight:700;"},"從"), dFromInput, e("span",{style:"font-size:15px;font-weight:700;"},"至"), dToInput);
+      dateRow.append(e("span",{style:"font-size:30px;font-weight:700;"},"從"), dFromInput, e("span",{style:"font-size:30px;font-weight:700;"},"至"), dToInput);
       expBox.append(dateRow);
       const expCount = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);}).length;
-      expBox.append(e("div",{style:"background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:14px;color:#166534;margin-bottom:10px;font-weight:700;"},expCount>0?"共 "+expCount+" 筆記錄符合條件":"⚠️ 所選範圍內沒有資料"));
+      expBox.append(e("div",{style:"background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:30px;color:#166534;margin-bottom:10px;font-weight:700;"},expCount>0?"共 "+expCount+" 筆記錄符合條件":"⚠️ 所選範圍內沒有資料"));
       expBox.append(e("button",{
-        style:"width:100%;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:800;",
+        style:"width:100%;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
         onclick: () => {
           const filtered = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
           if(!filtered.length){alert("所選範圍內沒有資料");return;}
@@ -536,30 +536,30 @@ function renderCssd() {
     ["全部",...ST].forEach(st => {
       const active=stF===st, color=st==="全部"?"#1e293b":SC[st].c;
       stRow.append(e("button",{
-        style:"padding:7px 12px;border:"+(active?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(active?color:"#f9fafb")+";color:"+(active?"#fff":"#374151")+";font-size:14px;font-weight:700;",
+        style:"padding:7px 12px;border:"+(active?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(active?color:"#f9fafb")+";color:"+(active?"#fff":"#374151")+";font-size:30px;font-weight:700;",
         onclick:()=>{stF=st;rerender();}
       }, st==="全部"?"全部":(SC[st].i+" "+st)));
     });
     filterBox.append(stRow);
     const utRow = e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
     utRow.append(e("button",{
-      style:"padding:7px 12px;border:"+(utF==="全部"?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(utF==="全部"?"#1e293b":"#f9fafb")+";color:"+(utF==="全部"?"#fff":"#374151")+";font-size:14px;font-weight:700;",
+      style:"padding:7px 12px;border:"+(utF==="全部"?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(utF==="全部"?"#1e293b":"#f9fafb")+";color:"+(utF==="全部"?"#fff":"#374151")+";font-size:30px;font-weight:700;",
       onclick:()=>{utF="全部";rerender();}
     },"全部單位"));
     UNITS.forEach(u => {
       utRow.append(e("button",{
-        style:"padding:7px 12px;border:"+(utF===u.id?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(utF===u.id?u.color:"#f9fafb")+";color:"+(utF===u.id?"#fff":"#374151")+";font-size:14px;font-weight:700;",
+        style:"padding:7px 12px;border:"+(utF===u.id?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(utF===u.id?u.color:"#f9fafb")+";color:"+(utF===u.id?"#fff":"#374151")+";font-size:30px;font-weight:700;",
         onclick:()=>{utF=u.id;rerender();}
       }, u.icon+" "+u.label));
     });
     utRow.append(e("button",{
-      style:"padding:7px 12px;border:"+(urgO?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(urgO?"#ef4444":"#f9fafb")+";color:"+(urgO?"#fff":"#374151")+";font-size:14px;font-weight:700;",
+      style:"padding:7px 12px;border:"+(urgO?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(urgO?"#ef4444":"#f9fafb")+";color:"+(urgO?"#fff":"#374151")+";font-size:30px;font-weight:700;",
       onclick:()=>{urgO=!urgO;rerender();}
     },"🔴 急件"));
     filterBox.append(utRow);
     body.append(filterBox);
 
-    if (!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:16px;"},"目前沒有符合條件的記錄"));
+    if (!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:30px;"},"目前沒有符合條件的記錄"));
 
     shown.forEach(order => {
       const u2=uInfo(order.unitId), sc=SC[order.status]||SC["待清洗"];
@@ -567,25 +567,25 @@ function renderCssd() {
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
       const badges = e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
       badges.append(
-        e("span",{style:"background:"+sc.c+";color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:14px;"},sc.i+" "+order.status),
-        e("span",{style:"background:"+u2.color+";color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:14px;"},u2.icon+" "+u2.label)
+        e("span",{style:"background:"+sc.c+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},sc.i+" "+order.status),
+        e("span",{style:"background:"+u2.color+";color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},u2.icon+" "+u2.label)
       );
-      if(order.urgent==="急件") badges.append(e("span",{style:"background:#ef4444;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:14px;"},"🔴 急件"));
-      cardHdr.append(badges, e("span",{style:"font-size:12px;color:#9ca3af;white-space:nowrap;margin-left:4px;"},order.time||""));
+      if(order.urgent==="急件") badges.append(e("span",{style:"background:#ef4444;color:#fff;font-size:30px;font-weight:700;padding:4px 10px;border-radius:14px;"},"🔴 急件"));
+      cardHdr.append(badges, e("span",{style:"font-size:30px;color:#9ca3af;white-space:nowrap;margin-left:4px;"},order.time||""));
       card.append(cardHdr);
-      card.append(e("div",{style:"font-size:15px;color:#374151;margin-bottom:8px;font-weight:600;"},"📍 "+(order.sub||"")+"  ",e("span",{style:"font-size:11px;color:#d1d5db;"},order._id||"")));
+      card.append(e("div",{style:"font-size:30px;color:#374151;margin-bottom:8px;font-weight:600;"},"📍 "+(order.sub||"")+"  ",e("span",{style:"font-size:30px;color:#d1d5db;"},order._id||"")));
       const itemList = e("div",{style:"display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"});
-      (order.items||[]).forEach(it=>itemList.append(e("span",{style:"border:2px solid "+u2.color+";border-radius:8px;padding:4px 10px;font-size:14px;font-weight:700;color:"+u2.color+";"},it.label+" × "+it.qty)));
+      (order.items||[]).forEach(it=>itemList.append(e("span",{style:"border:2px solid "+u2.color+";border-radius:8px;padding:4px 10px;font-size:30px;font-weight:700;color:"+u2.color+";"},it.label+" × "+it.qty)));
       card.append(itemList);
-      if(order.note) card.append(e("div",{style:"font-size:14px;color:#6b7280;margin-bottom:8px;font-style:italic;"},"📝 "+order.note));
+      if(order.note) card.append(e("div",{style:"font-size:30px;color:#6b7280;margin-bottom:8px;font-style:italic;"},"📝 "+order.note));
       const stRow2 = e("div",{style:"display:flex;gap:8px;"});
       if (order.status !== "已完成") {
         stRow2.append(e("button",{
-          style:"flex:1;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:18px;font-weight:900;",
+          style:"flex:1;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:30px;font-weight:900;",
           onclick: () => updateDoc(doc(db,"orders",order._id),{status:"已完成"})
         }, "✅ 已完成"));
       } else {
-        stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:18px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
+        stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:30px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
       }
       card.append(stRow2);
       body.append(card);
