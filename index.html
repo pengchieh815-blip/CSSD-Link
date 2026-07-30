@@ -6,7 +6,7 @@
 <title>CSSD Link</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif; background: #f1f5f9; font-size: 17px; }
+body { font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif; background: #eef2f7; font-size: 17px; }
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
 input[type=number] { -moz-appearance: textfield; }
 button { cursor: pointer; font-family: inherit; }
@@ -16,7 +16,7 @@ button { cursor: pointer; font-family: inherit; }
 <div id="app"></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyCjQL21WU_rabDnEwyH9cz3CznvWNQyswM",
@@ -141,10 +141,10 @@ function renderHome() {
   const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
 
   // Header
-  root.append(e("div",{style:"background:linear-gradient(135deg,#1e293b,#0f4c81);color:#fff;padding:24px 20px;text-align:center;"},
+  root.append(e("div",{style:"background:linear-gradient(135deg,#1a3a5c,#1e6fa8);color:#fff;padding:28px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.15);"},
     e("div",{style:"font-size:40px;margin-bottom:6px;"},"🏥"),
-    e("div",{style:"font-size:18px;font-weight:900;letter-spacing:1px;line-height:1.4;"},"天主教耕莘醫療財團法人耕莘醫院"),
-    e("div",{style:"font-size:16px;color:#93c5fd;margin-top:6px;letter-spacing:2px;font-weight:700;"},"器械登記系統")
+    e("div",{style:"font-size:30px;font-weight:900;letter-spacing:1px;line-height:1.4;"},"天主教耕莘醫療財團法人耕莘醫院"),
+    e("div",{style:"font-size:20px;color:#93c5fd;margin-top:6px;letter-spacing:2px;font-weight:700;"},"器械登記系統")
   ));
 
   const body = e("div",{style:"padding:16px 14px 50px;"});
@@ -157,7 +157,7 @@ function renderHome() {
     ["急件",   orders.filter(o=>o.urgent==="急件"&&o.status!=="已完成").length, "#ef4444"],
     ["今日",   orders.filter(o=>o.time&&o.time.startsWith(today().replace(/-/g,"/"))).length, "#10b981"],
   ].forEach(([label,val,color]) => {
-    stats.append(e("div",{style:"background:#fff;border-radius:12px;padding:12px 4px;text-align:center;border-top:4px solid "+color+";box-shadow:0 1px 4px rgba(0,0,0,.08);"},
+    stats.append(e("div",{style:"background:#fff;border-radius:14px;padding:14px 4px;text-align:center;border-top:4px solid "+color+";box-shadow:0 2px 8px rgba(0,0,0,.06);"},
       e("div",{style:"font-size:26px;font-weight:900;color:"+color+";"},val),
       e("div",{style:"font-size:13px;color:#6b7280;margin-top:2px;font-weight:600;"},label)
     ));
@@ -166,7 +166,7 @@ function renderHome() {
 
   // ── 病房
   body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:4px;border-left:4px solid #2563eb;padding-left:10px;"},"🏥 病房"));
-  const wardCard = e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);"});
+  const wardCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const wardGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   WARD_UNIT.subs.forEach(sub => {
     const hasPend = false;
@@ -180,7 +180,7 @@ function renderHome() {
 
   // ── 門診
   body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #7c3aed;"},"🩺 門診"));
-  const opdCard = e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.07);"});
+  const opdCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const opdGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   OPD_UNIT.subs.forEach(sub => {
     opdGrid.append(e("button",{
@@ -193,7 +193,7 @@ function renderHome() {
 
   // ── 其他單位
   body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #10b981;"},"🏪 其他單位"));
-  const otherCard = e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);"});
+  const otherCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:22px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:8px;"});
   OTHER_UNITS.forEach(u => {
     const btn = e("button",{
@@ -466,7 +466,17 @@ function renderCssd() {
     root.append(e("div",{style:"background:#1e293b;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
       e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:15px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
       e("div",{style:"font-size:17px;font-weight:800;"},"📋 供應室管理"),
-      e("button",{style:"background:rgba(16,185,129,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:700;",onclick:()=>{showExp=!showExp;rerender();}},"📥 報表")
+      e("div",{style:"display:flex;gap:8px;"},
+        e("button",{style:"background:rgba(239,68,68,.3);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:700;",
+          onclick: async () => {
+            const done = S.orders.filter(o=>o.status==="已完成");
+            if (!done.length) { alert("目前沒有已完成的記錄"); return; }
+            if (!confirm("確定要清除全部 "+done.length+" 筆已完成記錄？")) return;
+            for (const o of done) await deleteDoc(doc(db,"orders",o._id));
+          }
+        },"🗑️ 清除已完成"),
+        e("button",{style:"background:rgba(16,185,129,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:700;",onclick:()=>{showExp=!showExp;rerender();}},"📥 報表")
+      )
     ));
 
     const body = e("div",{style:"padding:12px 12px 50px;"});
