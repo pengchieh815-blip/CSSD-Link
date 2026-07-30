@@ -16,7 +16,7 @@ button { cursor: pointer; font-family: inherit; }
 <div id="app"></div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyCjQL21WU_rabDnEwyH9cz3CznvWNQyswM",
@@ -98,6 +98,33 @@ onSnapshot(query(collection(db,"orders"),orderBy("ts","desc")), snap => {
   S.loading = false;
   render();
 });
+
+// ── 備份並刪除函數
+const CLOTH_SET_GLOBAL = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
+
+const archiveAndDelete = async (ordersToDelete) => {
+  for (const o of ordersToDelete) {
+    const {_id, ...data} = o;
+    await addDoc(collection(db,"orders_archive"), {...data, archivedAt: Date.now()});
+    await deleteDoc(doc(db,"orders",_id));
+  }
+};
+
+// ── 每日 23:59 自動清除所有資料（備份到 orders_archive）
+const scheduleDailyClean = () => {
+  const now2 = new Date();
+  const next = new Date(now2);
+  next.setHours(23, 59, 0, 0);
+  if (next <= now2) next.setDate(next.getDate()+1);
+  const ms = next - now2;
+  setTimeout(async () => {
+    const snap = await getDocs(collection(db,"orders"));
+    const all = snap.docs.map(d=>({_id:d.id,...d.data()}));
+    if (all.length > 0) await archiveAndDelete(all);
+    scheduleDailyClean(); // 排下一天
+  }, ms);
+};
+scheduleDailyClean();
 
 function e(tag, props, ...kids) {
   const el = document.createElement(tag);
@@ -545,8 +572,9 @@ function renderCssd() {
               return clothOk && otherOk;
             });
             if (!done.length) { alert("目前沒有兩邊都到等待送回的記錄"); return; }
-            if (!confirm("確定要清除全部 "+done.length+" 筆記錄？")) return;
-            for (const o of done) await deleteDoc(doc(db,"orders",o._id));
+            if (!confirm("確定要清除全部 "+done.length+" 筆記錄？\n（資料會備份到報表，可繼續查詢）")) return;
+            await archiveAndDelete(done);
+            alert("已清除並備份完成！");
           }
         },"🗑️ 清除已完成"),
         e("button",{style:"background:rgba(16,185,129,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:30px;font-weight:700;",onclick:()=>{showExp=!showExp;rerender();}},"📥 報表")
@@ -586,11 +614,15 @@ function renderCssd() {
       // 兩個下載按鈕
       const dlRow = e("div",{style:"display:flex;gap:8px;"});
 
-      // 明細 CSV
+      // 明細 CSV（包含 archive）
       dlRow.append(e("button",{
         style:"flex:1;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
-        onclick: () => {
-          const filtered = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+        onclick: async () => {
+          // 同時查 orders 和 orders_archive
+          const archSnap = await getDocs(collection(db,"orders_archive"));
+          const archOrders = archSnap.docs.map(d=>({_id:d.id,...d.data()}));
+          const allOrders = [...orders, ...archOrders];
+          const filtered = allOrders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
           if(!filtered.length){alert("所選範圍內沒有資料");return;}
           const rows=[["單號","時間","單位類型","送洗單位","緊急程度","器械名稱","數量","狀態","備註"]];
           filtered.forEach(o=>{(o.items||[]).forEach((it,i)=>{rows.push([i===0?(o._id||""):"",i===0?(o.time||""):"",i===0?(o.unitLabel||""):"",i===0?(o.sub||""):"",i===0?(o.urgent||""):"",it.label,it.qty,i===0?(o.status||""):"",i===0?(o.note||""):""])});});
@@ -606,8 +638,11 @@ function renderCssd() {
       // 品項統計 CSV
       dlRow.append(e("button",{
         style:"flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
-        onclick: () => {
-          const filtered = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+        onclick: async () => {
+          const archSnap2 = await getDocs(collection(db,"orders_archive"));
+          const archOrders2 = archSnap2.docs.map(d=>({_id:d.id,...d.data()}));
+          const allOrders2 = [...orders, ...archOrders2];
+          const filtered = allOrders2.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
           if(!filtered.length){alert("所選範圍內沒有資料");return;}
           // 統計每個品項總量
           const totals = {};
