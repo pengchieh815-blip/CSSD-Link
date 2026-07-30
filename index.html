@@ -10,6 +10,19 @@ body { font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif; 
 input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
 input[type=number] { -moz-appearance: textfield; }
 button { cursor: pointer; font-family: inherit; }
+
+/* 手機 (預設) */
+:root { --cols-unit: 4; --cols-cat: 4; --cols-item: 4; --font-base: 16px; --font-tile: 14px; }
+
+/* 平板 */
+@media (min-width: 768px) {
+  :root { --cols-unit: 8; --cols-cat: 6; --cols-item: 6; --font-base: 18px; --font-tile: 16px; }
+}
+
+/* 桌機 */
+@media (min-width: 1200px) {
+  :root { --cols-unit: 16; --cols-cat: 8; --cols-item: 8; --font-base: 20px; --font-tile: 18px; }
+}
 </style>
 </head>
 <body>
@@ -207,7 +220,7 @@ function renderHome() {
   // ── 其他單位
   body.append(e("div",{style:"font-size:30px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #10b981;"},"🏪 其他單位"));
   const otherCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:22px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
-  const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(16,1fr);gap:8px;"});
+  const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-unit),1fr);gap:8px;"});
   OTHER_UNITS.forEach(u => {
     const btn = e("button",{
       style:"background:"+u.light+";border:2px solid "+u.color+";border-radius:12px;width:100%;padding-bottom:100%;position:relative;display:block;",
@@ -346,7 +359,7 @@ function renderForm() {
     if (!results.length) {
       itemsWrap.append(e("div",{style:"padding:20px;text-align:center;color:#9ca3af;font-size:30px;background:#fff;border-radius:12px;"},"找不到符合的品項"));
     } else {
-      const tileGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:8px;"});
+      const tileGrid = e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-item),1fr);gap:8px;"});
       results.forEach(it => {
         const qty = cart[it.label]||0;
         const selected = qty > 0;
@@ -382,7 +395,7 @@ function renderForm() {
     const favs = getFavs();
 
     // 分類方框格子 — ⭐常用 first
-    const catGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:12px;"});
+    const catGrid = e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-cat),1fr);gap:10px;margin-bottom:12px;"});
 
     // ⭐ 常用格
     const favSelCount = favs.filter(i=>cart[i]>0).length;
@@ -454,7 +467,7 @@ function renderForm() {
       if (!favs.length) {
         catBody.append(e("div",{style:"text-align:center;color:#9ca3af;font-size:30px;padding:20px;"},"尚未加入常用品項\n點品項右上角 ☆ 可加入"));
       } else {
-        const tileGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:8px;"});
+        const tileGrid = e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-item),1fr);gap:8px;"});
         favs.forEach(label => tileGrid.append(makeTile(label)));
         catBody.append(tileGrid);
       }
@@ -477,7 +490,7 @@ function renderForm() {
       );
       block.append(catHdr);
       const catBody = e("div",{style:"padding:12px;"});
-      const tileGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:8px;"});
+      const tileGrid = e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-item),1fr);gap:8px;"});
       c.items.forEach(label => tileGrid.append(makeTile(label)));
       catBody.append(tileGrid);
       block.append(catBody);
