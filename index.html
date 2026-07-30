@@ -353,7 +353,7 @@ function renderForm() {
     }
   } else {
     // 分類方框格子
-    const catGrid = e("div",{style:"display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;"});
+    const catGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:10px;margin-bottom:12px;"});
     CATS.forEach(c => {
       const selCount = c.items.filter(i=>cart[i]>0).length;
       const isOpen = !!openCats[c.id];
