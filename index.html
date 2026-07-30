@@ -33,7 +33,7 @@ const WARD_UNIT = {id:"ward", label:"病房", icon:"🏥", color:"#2563eb", ligh
   subs:["4A","9A","6E","DR","BR","7E","8E","10E","11E","12E","13E","NBC","CCU","MICU-1","MICU-2","SICU","HR","護理之家"]};
 
 // 門診 group
-const OPD_UNIT = {id:"opd", label:"門診", icon:"🩺", color:"#7c3aed", light:"#f5f3ff",
+const OPD_UNIT = {id:"opd", label:"門診", icon:"⚕️", color:"#7c3aed", light:"#f5f3ff",
   subs:["C201","C202","B502","B503","B102","B103","B104","B105","B106","B108","A104","A122","B109","注射室","眼科","ENT","皮膚科","RT","OBS","中醫","美醫"]};
 
 // 其他單位 — one card each, sub is just the label itself
@@ -41,32 +41,32 @@ const OTHER_UNITS = [
   {id:"clinic", label:"耕莘診所", icon:"🏪", color:"#065f46", light:"#ecfdf5", subs:["耕莘診所"]},
   {id:"dental",  label:"牙科",    icon:"🦷", color:"#16a34a", light:"#f0fdf4", subs:["牙科"]},
   {id:"health",  label:"健促中心",icon:"💪", color:"#0d9488", light:"#f0fdfa", subs:["健促中心"]},
-  {id:"cath",    label:"心導管室",icon:"🫀", color:"#dc2626", light:"#fef2f2", subs:["心導管室"]},
+  {id:"cath",    label:"心導管室",icon:"❤️", color:"#dc2626", light:"#fef2f2", subs:["心導管室"]},
   {id:"home",    label:"居護組",  icon:"🏠", color:"#b45309", light:"#fffbeb", subs:["居護組"]},
   {id:"urod",    label:"尿路動力",icon:"🔬", color:"#0891b2", light:"#ecfeff", subs:["尿路動力"]},
   {id:"fm",      label:"家醫科",  icon:"👨‍⚕️",color:"#4f46e5", light:"#eef2ff", subs:["家醫科"]},
   {id:"xray",    label:"X光科",  icon:"☢️", color:"#64748b", light:"#f8fafc", subs:["X光科"]},
   {id:"anes",    label:"麻醉科",  icon:"💉", color:"#9333ea", light:"#faf5ff", subs:["麻醉科"]},
-  {id:"breast",  label:"乳超",    icon:"🩻", color:"#db2777", light:"#fdf2f8", subs:["乳超"]},
+  {id:"breast",  label:"乳超",    icon:"📡", color:"#db2777", light:"#fdf2f8", subs:["乳超"]},
   {id:"radio",   label:"放腫科",  icon:"⚡", color:"#ea580c", light:"#fff7ed", subs:["放腫科"]},
-  {id:"hbo",     label:"高壓氧",  icon:"🫧", color:"#0369a1", light:"#f0f9ff", subs:["高壓氧"]},
+  {id:"hbo",     label:"高壓氧",  icon:"🛸", color:"#0369a1", light:"#f0f9ff", subs:["高壓氧"]},
   {id:"pet",     label:"正子中心",icon:"🧬", color:"#7c3aed", light:"#f5f3ff", subs:["正子中心"]},
   {id:"image",   label:"影像中心",icon:"🖥️", color:"#374151", light:"#f9fafb", subs:["影像中心"]},
-  {id:"physio",  label:"生理檢查室",icon:"🫀", color:"#0e7490", light:"#ecfeff", subs:["生理檢查室"]},
+  {id:"physio",  label:"生理檢查室",icon:"🌬️", color:"#0e7490", light:"#ecfeff", subs:["生理檢查室"]},
 ];
 
 const UNITS = [WARD_UNIT, OPD_UNIT, ...OTHER_UNITS];
 
 const CATS = [
   {id:"cloth",    label:"布包類",       icon:"🧺", items:["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]},
-  {id:"gauze",    label:"棉紗類",       icon:"🩹", items:["棉球12顆","棉球3顆","紗條(粗)","紗條(細)","紗布3*3","止血棉","紗球4顆","切棉"]},
+  {id:"gauze",    label:"棉紗類",       icon:"➕", items:["棉球12顆","棉球3顆","紗條(粗)","紗條(細)","紗布3*3","止血棉","紗球4顆","切棉"]},
   {id:"ca",       label:"CA配盤",       icon:"📦", items:["收 CA配盤(1)","收 CA配盤(2)","收 CA配盤(3)","送 CA配盤(1)","送 CA配盤(2)","送 CA配盤(3)"]},
   {id:"forceps",  label:"鑷子類",       icon:"🔧", items:["無齒鑷子(特長)","有齒鑷子(特長)","無齒鑷子(18CM)","無齒鑷子(14CM)","有齒鑷子(18CM)","有齒鑷子(14CM)","細小鑷子(10-12CM)","Adson(無齒)AS","Adson(有齒)AT","ENT鑷子","三孔鑷子","教授/院長耳鑷","耵聹鉗","子宮鉗","拖舌鉗","異物勾","止血鉗","Allis","Babcock","Kocher","SKIN HOOK","HOOK"]},
   {id:"scissors", label:"剪刀類",       icon:"✂️", items:["拆線剪刀(雙尖)","拆線剪刀(平、尖)","組織剪(彎)","小直剪","小彎美容剪","小斜剪","繃帶剪","鋼剪/拆釘器","鋼剪(鐵)"]},
   {id:"clamp",    label:"止血鉗類",     icon:"🔩", items:["Kelly直(大)","Kelly直(中)","Kelly直(小)","Kelly彎(大)","Kelly彎(中)","Kelly彎(小)","小彎紋鉗Mosquitto","小直紋鉗Mosquitto","產鉗","拉鉤(單)","拉鉤(雙)","壓腸板","上下葉"]},
-  {id:"needle",   label:"持針器/刀柄",  icon:"🪡", items:["持針器(大)","持針器(中)","持針器(小)","刀柄#3"]},
+  {id:"needle",   label:"持針器/刀柄",  icon:"🧵", items:["持針器(大)","持針器(中)","持針器(小)","刀柄#3"]},
   {id:"airway",   label:"呼吸/麻醉類",  icon:"💨", items:["EO","Mask","Anbu bag 接頭","Anbu bag","Peep","氣管交換條","喉頭鏡葉片","LMA口腔內塊插管","滅音器","鼻管","蛇形管","呼吸器管路","拍痰杯","氣切套管","吸球","連接管"]},
-  {id:"container",label:"容器類",       icon:"🫙", items:["彎盆","小鋼杯","換藥碗","玻璃測壓管","大泡鑷罐(有鑷)","中泡鑷罐(有鑷)","中泡鑷罐(無鑷)","中敷料罐/棉球罐","小敷料罐/棉球罐","便當盒","廣口瓶(IV瓶)","沖洗壺","沖奶器","奶瓶","浴盆"]},
+  {id:"container",label:"容器類",       icon:"🥫", items:["彎盆","小鋼杯","換藥碗","玻璃測壓管","大泡鑷罐(有鑷)","中泡鑷罐(有鑷)","中泡鑷罐(無鑷)","中敷料罐/棉球罐","小敷料罐/棉球罐","便當盒","廣口瓶(IV瓶)","沖洗壺","沖奶器","奶瓶","浴盆"]},
   {id:"kits",     label:"包組類",       icon:"📋", items:["縫合包","CVP包","整形包","臍靜脈切開包","中央靜脈切開包","腰椎穿刺包","氣管切開包","插胸管包","器械產包","戒治包","I&D包","C/S包","C/S SET","小C包","針包","大器械盒(包)","小器械盒(包)","敷料桶(大)","敷料桶(小)","敷料包"]},
   {id:"baby",     label:"嬰兒/婦產類",  icon:"👶", items:["奶蓋(桶)(包)","奶片(桶)(包)","奶嘴(桶)(包)","安撫奶嘴","刷子","鴨嘴","張口器","子宮探針","組織內膜採樣器","HSG"]},
   {id:"scope",    label:"內視鏡/腸胃類",icon:"🔭", items:["切片夾(胃)","切片夾(腸)","SNEAR(胃)","SNEAR(腸)","腸三爪","EVL結紮器","腸熱切片","ERCP切刀","取石網","異物夾","止血釘","過濾器","異物環","異物網","燈把"]},
