@@ -595,7 +595,14 @@ function renderCssd() {
 
     if (!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:30px;"},"目前沒有符合條件的記錄"));
 
-    shown.forEach(order => {
+    // 布包類品項名稱
+    const CLOTH_ITEMS = new Set(CATS.find(c=>c.id==="cloth").items);
+    const isClothOrder = o => (o.items||[]).some(it => CLOTH_ITEMS.has(it.label));
+
+    const clothOrders = shown.filter(o => isClothOrder(o));
+    const otherOrders = shown.filter(o => !isClothOrder(o));
+
+    const makeCard = (order) => {
       const u2=uInfo(order.unitId), sc=SC[order.status]||SC["待清洗"];
       const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":"transparent")+";"});
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
@@ -622,8 +629,20 @@ function renderCssd() {
         stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:30px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
       }
       card.append(stRow2);
-      body.append(card);
-    });
+      return card;
+    };
+
+    // ── 包布類區
+    if (clothOrders.length > 0) {
+      body.append(e("div",{style:"font-size:30px;font-weight:900;color:#1e293b;margin-bottom:10px;padding:10px 16px;background:#fef9c3;border-left:6px solid #f59e0b;border-radius:8px;"},"🧺 包布類（"+clothOrders.length+" 筆）"));
+      clothOrders.forEach(o => body.append(makeCard(o)));
+    }
+
+    // ── 管帶區
+    if (otherOrders.length > 0) {
+      body.append(e("div",{style:"font-size:30px;font-weight:900;color:#1e293b;margin-bottom:10px;margin-top:16px;padding:10px 16px;background:#eff6ff;border-left:6px solid #2563eb;border-radius:8px;"},"🔧 管帶（"+otherOrders.length+" 筆）"));
+      otherOrders.forEach(o => body.append(makeCard(o)));
+    }
 
     root.append(body);
     return root;
