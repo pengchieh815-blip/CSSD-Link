@@ -168,18 +168,17 @@ function render() {
     return;
   }
   if (S.view==="home") app.append(renderHome());
+  else if (S.view==="home_inner") app.append(renderHomeInner());
   else if (S.view==="form") app.append(renderForm());
   else if (S.view==="cssd") app.append(renderCssd());
   else if (S.view==="history") app.append(renderHistory());
+  else if (S.view==="settings") app.append(renderSettings());
+  else if (S.view==="vendor") app.append(renderVendor());
+  else if (S.view==="vendor_cssd") app.append(renderVendorCssd());
 }
 
 /* ─── HOME ─── */
 function renderHome() {
-  const orders = S.orders;
-  const pend = {};
-  UNITS.forEach(u => pend[u.id]=0);
-  orders.filter(o=>o.status!=="已完成").forEach(o=>{ if(pend[o.unitId]!=null) pend[o.unitId]++; });
-
   const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
 
   // Header
@@ -189,10 +188,82 @@ function renderHome() {
     e("div",{style:"font-size:50px;color:#93c5fd;margin-top:6px;letter-spacing:2px;font-weight:700;"},"器械登記系統")
   ));
 
+  const body = e("div",{style:"padding:30px 20px 50px;display:flex;flex-direction:column;gap:16px;"});
+
+  // 院內入口
+  body.append(e("button",{
+    style:"width:100%;background:#fff;border:3px solid #2563eb;border-radius:20px;padding:30px 20px;display:flex;align-items:center;gap:20px;text-align:left;box-shadow:0 4px 16px rgba(37,99,235,.15);",
+    onclick:()=>{S.view="home_inner";render();}
+  },
+    e("span",{style:"font-size:50px;"},"🏥"),
+    e("div",{},
+      e("div",{style:"font-size:32px;font-weight:900;color:#1d4ed8;"},"院內人員"),
+      e("div",{style:"font-size:24px;color:#6b7280;margin-top:4px;"},"病房・門診・各單位送洗登記")
+    ),
+    e("span",{style:"margin-left:auto;color:#2563eb;font-size:36px;"},"→")
+  ));
+
+  // 院外廠商入口
+  body.append(e("button",{
+    style:"width:100%;background:#fff;border:3px solid #b45309;border-radius:20px;padding:30px 20px;display:flex;align-items:center;gap:20px;text-align:left;box-shadow:0 4px 16px rgba(180,83,9,.15);",
+    onclick:()=>{S.view="vendor";render();}
+  },
+    e("span",{style:"font-size:50px;"},"🏭"),
+    e("div",{},
+      e("div",{style:"font-size:32px;font-weight:900;color:#b45309;"},"院外廠商"),
+      e("div",{style:"font-size:24px;color:#6b7280;margin-top:4px;"},"寄銷器械送洗登記")
+    ),
+    e("span",{style:"margin-left:auto;color:#b45309;font-size:36px;"},"→")
+  ));
+
+  // 供應室管理
+  body.append(e("button",{
+    style:"width:100%;background:#1e293b;color:#fff;border:none;border-radius:16px;padding:22px 20px;display:flex;align-items:center;gap:14px;text-align:left;",
+    onclick:()=>{const pw=prompt("請輸入供應室密碼：");if(pw==="2600"){S.view="cssd";render();}else if(pw!==null)alert("密碼錯誤！");}
+  },
+    e("span",{style:"font-size:36px;"},"📋"),
+    e("div",{},
+      e("div",{style:"font-size:30px;font-weight:800;"},"供應室管理"),
+      e("div",{style:"font-size:24px;color:#93c5fd;margin-top:2px;"},"院內送洗單・進度・報表")
+    ),
+    e("span",{style:"margin-left:auto;color:#93c5fd;font-size:30px;"},"→")
+  ));
+
+  // 設定
+  body.append(e("button",{
+    style:"width:100%;background:#475569;color:#fff;border:none;border-radius:16px;padding:22px 20px;display:flex;align-items:center;gap:14px;text-align:left;",
+    onclick:()=>{const pw=prompt("請輸入設定密碼：");if(pw==="2000"){S.view="settings";render();}else if(pw!==null)alert("密碼錯誤！");}
+  },
+    e("span",{style:"font-size:36px;"},"⚙️"),
+    e("div",{},
+      e("div",{style:"font-size:30px;font-weight:800;"},"總設定"),
+      e("div",{style:"font-size:24px;color:#cbd5e1;margin-top:2px;"},"單位・器械・分類管理")
+    ),
+    e("span",{style:"margin-left:auto;color:#cbd5e1;font-size:30px;"},"→")
+  ));
+
+  root.append(body);
+  return root;
+}
+
+/* ─── HOME INNER ─── */
+function renderHomeInner() {
+  const orders = S.orders;
+  const pend = {};
+  UNITS.forEach(u => pend[u.id]=0);
+  orders.filter(o=>o.status!=="已完成").forEach(o=>{ if(pend[o.unitId]!=null) pend[o.unitId]++; });
+
+  const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.15);"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+    e("div",{style:"font-size:30px;font-weight:800;"},"🏥 院內送洗登記"),
+    e("div",{style:"width:80px;"})
+  ));
+
   const body = e("div",{style:"padding:16px 14px 50px;"});
 
   // ── 病房
-  body.append(e("div",{style:"font-size:30px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:4px;border-left:4px solid #2563eb;padding-left:10px;"},"🏥 病房"));
+  body.append(e("div",{style:"font-size:30px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #2563eb;"},"🏥 病房"));
   const wardCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const wardGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   WARD_UNIT.subs.forEach(sub => {
@@ -205,7 +276,7 @@ function renderHome() {
   body.append(wardCard);
 
   // ── 門診
-  body.append(e("div",{style:"font-size:30px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #7c3aed;"},"🩺 門診"));
+  body.append(e("div",{style:"font-size:30px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #7c3aed;"},"⚕️ 門診"));
   const opdCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const opdGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   OPD_UNIT.subs.forEach(sub => {
@@ -231,28 +302,11 @@ function renderHome() {
         e("div",{style:"font-size:30px;font-weight:800;color:"+u.color+";text-align:center;"},u.label)
       )
     );
-    if (pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:30px;font-weight:700;padding:1px 6px;border-radius:8px;"},pend[u.id]));
+    if(pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:20px;font-weight:700;padding:2px 8px;border-radius:10px;"},pend[u.id]));
     otherGrid.append(btn);
   });
   otherCard.append(otherGrid);
   body.append(otherCard);
-
-  // CSSD button
-  body.append(e("button",{
-    style:"width:100%;background:#1e293b;color:#fff;border:none;border-radius:12px;padding:18px 16px;display:flex;align-items:center;gap:14px;text-align:left;",
-    onclick: () => {
-      const pw = prompt("請輸入供應室密碼：");
-      if (pw === "2600") { S.view="cssd"; render(); }
-      else if (pw !== null) alert("密碼錯誤！");
-    }
-  },
-    e("span",{style:"font-size:30px;"},"📋"),
-    e("div",{},
-      e("div",{style:"font-size:30px;font-weight:800;"},"供應室管理"),
-      e("div",{style:"font-size:30px;color:#93c5fd;margin-top:2px;"},"查看全部送洗單・更新進度・下載報表")
-    ),
-    e("span",{style:"margin-left:auto;color:#93c5fd;font-size:30px;"},"→")
-  ));
 
   root.append(body);
   return root;
@@ -918,6 +972,215 @@ async function renderHistory() {
     body.append(card);
   });
 
+  return root;
+}
+
+/* ─── SETTINGS ─── */
+function renderSettings() {
+  const getCustom = (key, def) => { try { return JSON.parse(localStorage.getItem("setting_"+key)||"null")||def; } catch(e){return def;} };
+  const setCustom = (key, val) => localStorage.setItem("setting_"+key, JSON.stringify(val));
+  let tab = "ward";
+
+  function build() {
+    const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+    root.append(e("div",{style:"background:#475569;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+      e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+      e("div",{style:"font-size:30px;font-weight:800;"},"⚙️ 總設定"),
+      e("div",{style:"width:80px;"})
+    ));
+    const body = e("div",{style:"padding:14px 14px 50px;"});
+    const tabRow = e("div",{style:"display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;"});
+    [["ward","🏥 病房"],["opd","🩺 門診"],["other","🏪 其他單位"],["items","🔧 器械分類"]].forEach(([id,label])=>{
+      tabRow.append(e("button",{
+        style:"padding:10px 18px;border:none;border-radius:10px;font-size:26px;font-weight:800;background:"+(tab===id?"#475569":"#fff")+";color:"+(tab===id?"#fff":"#374151")+";",
+        onclick:()=>{tab=id;rerender();}
+      },label));
+    });
+    body.append(tabRow);
+
+    if (tab==="ward"||tab==="opd") {
+      const baseUnit = tab==="ward"?WARD_UNIT:OPD_UNIT;
+      const extraSubs = getCustom("subs_"+tab,[]);
+      const allSubs = [...baseUnit.subs,...extraSubs];
+      const subList = e("div",{style:"background:#fff;border-radius:12px;padding:12px;margin-bottom:16px;"});
+      allSubs.forEach((sub,i)=>{
+        const row = e("div",{style:"display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;"});
+        row.append(e("span",{style:"font-size:26px;font-weight:600;"},sub));
+        if(i>=baseUnit.subs.length){
+          row.append(e("button",{style:"background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 14px;font-size:24px;font-weight:700;",
+            onclick:()=>{setCustom("subs_"+tab,extraSubs.filter(s=>s!==sub));rerender();}
+          },"🗑️ 刪除"));
+        } else {
+          row.append(e("span",{style:"font-size:22px;color:#9ca3af;"},"（預設）"));
+        }
+        subList.append(row);
+      });
+      body.append(e("div",{style:"font-size:28px;font-weight:800;margin-bottom:10px;"},"目前子單位"),subList);
+      const addRow=e("div",{style:"display:flex;gap:8px;"});
+      const inp=e("input",{type:"text",style:"flex:1;padding:12px;border:2px solid #d1d5db;border-radius:10px;font-size:26px;font-family:inherit;",placeholder:"輸入新單位名稱…"});
+      addRow.append(inp,e("button",{style:"padding:12px 20px;background:#475569;color:#fff;border:none;border-radius:10px;font-size:26px;font-weight:800;",
+        onclick:()=>{const v=inp.value.trim();if(!v)return;if(allSubs.includes(v)){alert("已存在");return;}setCustom("subs_"+tab,[...extraSubs,v]);rerender();}
+      },"＋ 新增"));
+      body.append(e("div",{style:"font-size:28px;font-weight:800;margin-bottom:10px;"},"新增子單位"),addRow);
+    }
+
+    if (tab==="other") {
+      const extraUnits = getCustom("extra_units",[]);
+      const unitList = e("div",{style:"background:#fff;border-radius:12px;padding:12px;margin-bottom:16px;"});
+      [...OTHER_UNITS.map(u=>({...u,isDefault:true})),...extraUnits.map(u=>({...u,isDefault:false}))].forEach(u=>{
+        const row=e("div",{style:"display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9;"});
+        row.append(e("span",{style:"font-size:26px;font-weight:600;"},u.icon+" "+u.label));
+        if(!u.isDefault){row.append(e("button",{style:"background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 14px;font-size:24px;font-weight:700;",
+          onclick:()=>{setCustom("extra_units",extraUnits.filter(x=>x.label!==u.label));rerender();}
+        },"🗑️ 刪除"));}
+        else row.append(e("span",{style:"font-size:22px;color:#9ca3af;"},"（預設）"));
+        unitList.append(row);
+      });
+      body.append(e("div",{style:"font-size:28px;font-weight:800;margin-bottom:10px;"},"目前其他單位"),unitList);
+      const addRow=e("div",{style:"display:flex;gap:8px;"});
+      const inp=e("input",{type:"text",style:"flex:1;padding:12px;border:2px solid #d1d5db;border-radius:10px;font-size:26px;font-family:inherit;",placeholder:"輸入新單位名稱…"});
+      addRow.append(inp,e("button",{style:"padding:12px 20px;background:#475569;color:#fff;border:none;border-radius:10px;font-size:26px;font-weight:800;",
+        onclick:()=>{const v=inp.value.trim();if(!v)return;const nu={id:"custom_"+Date.now(),label:v,icon:"🏢",color:"#64748b",light:"#f8fafc",subs:[v]};setCustom("extra_units",[...extraUnits,nu]);rerender();}
+      },"＋ 新增"));
+      body.append(e("div",{style:"font-size:28px;font-weight:800;margin-bottom:10px;"},"新增其他單位"),addRow);
+    }
+
+    if (tab==="items") {
+      CATS.forEach(c=>{
+        const extraItems=getCustom("items_"+c.id,[]);
+        const block=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;"});
+        block.append(e("div",{style:"font-size:28px;font-weight:800;margin-bottom:10px;"},c.icon+" "+c.label));
+        const itemList=e("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"});
+        [...c.items,...extraItems].forEach(item=>{
+          const tag=e("div",{style:"display:flex;align-items:center;gap:4px;background:#f1f5f9;border-radius:8px;padding:4px 10px;"});
+          tag.append(e("span",{style:"font-size:22px;"},item));
+          if(extraItems.includes(item)){tag.append(e("button",{style:"background:none;border:none;color:#dc2626;font-size:20px;cursor:pointer;font-weight:700;",
+            onclick:()=>{setCustom("items_"+c.id,extraItems.filter(i=>i!==item));rerender();}
+          },"✕"));}
+          itemList.append(tag);
+        });
+        block.append(itemList);
+        const addRow=e("div",{style:"display:flex;gap:8px;"});
+        const inp=e("input",{type:"text",style:"flex:1;padding:10px;border:2px solid #d1d5db;border-radius:8px;font-size:24px;font-family:inherit;",placeholder:"新增品項…"});
+        addRow.append(inp,e("button",{style:"padding:10px 16px;background:#475569;color:#fff;border:none;border-radius:8px;font-size:24px;font-weight:800;",
+          onclick:()=>{const v=inp.value.trim();if(!v)return;if([...c.items,...extraItems].includes(v)){alert("已存在");return;}setCustom("items_"+c.id,[...extraItems,v]);rerender();}
+        },"＋"));
+        block.append(addRow);
+        body.append(block);
+      });
+    }
+
+    root.append(body);
+    return root;
+  }
+  function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
+  return build();
+}
+
+/* ─── VENDOR FORM ─── */
+function renderVendor() {
+  let VF = {date:today(), time:"", vendorName:"", contact:"", phone:"", itemType:"", useDate:"", done:false};
+
+  function build() {
+    const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+    root.append(e("div",{style:"background:#b45309;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+      e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+      e("div",{style:"font-size:30px;font-weight:800;"},"🏭 院外廠商送洗登記"),
+      e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",
+        onclick:()=>{const pw=prompt("請輸入供應室密碼：");if(pw==="2600"){S.view="vendor_cssd";render();}else if(pw!==null)alert("密碼錯誤！");}
+      },"📋 管理")
+    ));
+
+    if(VF.done){
+      root.append(e("div",{style:"display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 20px;text-align:center;"},
+        e("div",{style:"font-size:70px;margin-bottom:16px;"},"✅"),
+        e("div",{style:"font-size:30px;font-weight:900;color:#065f46;margin-bottom:8px;"},"送洗申請已送出！"),
+        e("div",{style:"font-size:26px;color:#6b7280;margin-bottom:24px;"},"供應室已即時收到通知"),
+        e("button",{style:"width:220px;padding:16px;background:#b45309;color:#fff;border:none;border-radius:12px;font-size:30px;font-weight:800;",onclick:()=>{S.view="home";render();}},"返回首頁")
+      ));
+      return root;
+    }
+
+    const body=e("div",{style:"padding:14px 14px 50px;"});
+    const field=(label,req,content)=>e("div",{style:"margin-bottom:18px;"},
+      e("div",{style:"font-size:28px;font-weight:800;color:#1e293b;margin-bottom:8px;"},label,req?e("span",{style:"color:#ef4444;margin-left:3px;"},"*"):null),
+      content
+    );
+    const mkInp=(ph,val,key,type="text")=>{
+      const el=e("input",{type,style:"width:100%;padding:12px 14px;border:2.5px solid #d1d5db;border-radius:12px;font-size:26px;font-family:inherit;",placeholder:ph,value:val});
+      el.addEventListener("change",ev=>{VF[key]=ev.target.value;});
+      el.addEventListener("input",ev=>{VF[key]=ev.target.value;});
+      return el;
+    };
+    body.append(
+      field("寄銷日期",true,mkInp("",""+VF.date,"date","date")),
+      field("時間",true,mkInp("例：14:30",VF.time,"time")),
+      field("廠商名稱",true,mkInp("請輸入廠商名稱",VF.vendorName,"vendorName")),
+      field("聯絡人",true,mkInp("請輸入聯絡人姓名",VF.contact,"contact")),
+      field("電話",true,mkInp("請輸入聯絡電話",VF.phone,"phone")),
+      field("器械種類",true,mkInp("請輸入器械種類",VF.itemType,"itemType")),
+      field("器械預計使用日期",true,mkInp("",""+VF.useDate,"useDate","date"))
+    );
+    const canSubmit=VF.vendorName&&VF.contact&&VF.phone&&VF.itemType&&VF.useDate;
+    const btn=e("button",{
+      style:"width:100%;padding:16px;background:"+(canSubmit?"#b45309":"#9ca3af")+";color:#fff;border:none;border-radius:12px;font-size:30px;font-weight:900;",
+      onclick:async()=>{
+        if(!canSubmit)return;
+        try{
+          await addDoc(collection(db,"vendor_orders"),{
+            date:VF.date,time:VF.time,vendorName:VF.vendorName,
+            contact:VF.contact,phone:VF.phone,itemType:VF.itemType,
+            useDate:VF.useDate,status:"待處理",ts:Date.now(),time2:now()
+          });
+          VF.done=true;rerender();
+        }catch(err){alert("送出失敗："+err.message);}
+      }
+    },"送出送洗申請");
+    body.append(btn);
+    if(!canSubmit)body.append(e("p",{style:"text-align:center;color:#9ca3af;font-size:26px;margin-top:8px;"},"請填寫所有必填欄位"));
+    root.append(body);
+    return root;
+  }
+  function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
+  return build();
+}
+
+/* ─── VENDOR CSSD ─── */
+function renderVendorCssd() {
+  const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:#b45309;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+    e("div",{style:"font-size:30px;font-weight:800;"},"🏭 廠商送洗管理"),
+    e("div",{style:"width:80px;"})
+  ));
+  const body=e("div",{style:"padding:14px 14px 50px;"});
+  body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:30px;"},"⏳ 載入中…"));
+  root.append(body);
+  onSnapshot(query(collection(db,"vendor_orders"),orderBy("ts","desc")),snap=>{
+    const orders=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    body.innerHTML="";
+    if(!orders.length){body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:30px;"},"目前沒有廠商送洗記錄"));return;}
+    orders.forEach(o=>{
+      const card=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(o.status==="已完成"?"#10b981":"#b45309")+";"});
+      card.append(e("div",{style:"display:flex;justify-content:space-between;margin-bottom:10px;"},
+        e("span",{style:"background:"+(o.status==="已完成"?"#10b981":"#b45309")+";color:#fff;font-size:26px;font-weight:700;padding:4px 12px;border-radius:12px;"},o.status||"待處理"),
+        e("span",{style:"font-size:24px;color:#9ca3af;"},o.time2||"")
+      ));
+      card.append(e("div",{style:"font-size:28px;font-weight:800;color:#1e293b;margin-bottom:6px;"},"🏭 "+o.vendorName));
+      card.append(e("div",{style:"font-size:26px;color:#374151;margin-bottom:4px;"},"👤 "+o.contact+"　📞 "+o.phone));
+      card.append(e("div",{style:"font-size:26px;color:#374151;margin-bottom:4px;"},"🔧 "+o.itemType));
+      card.append(e("div",{style:"font-size:26px;color:#374151;margin-bottom:10px;"},"📅 寄銷："+o.date+(o.time?" "+o.time:"")+"　預計使用："+o.useDate));
+      if(o.status!=="已完成"){
+        card.append(e("button",{
+          style:"width:100%;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:30px;font-weight:900;",
+          onclick:()=>updateDoc(doc(db,"vendor_orders",o._id),{status:"已完成"})
+        },"✅ 已完成"));
+      } else {
+        card.append(e("div",{style:"width:100%;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:30px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));
+      }
+      body.append(card);
+    });
+  });
   return root;
 }
 
