@@ -142,9 +142,9 @@ function renderHome() {
 
   // Header
   root.append(e("div",{style:"background:linear-gradient(135deg,#1a3a5c,#1e6fa8);color:#fff;padding:28px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.15);"},
-    e("div",{style:"font-size:40px;margin-bottom:6px;"},"🏥"),
-    e("div",{style:"font-size:50px;font-weight:900;letter-spacing:1px;line-height:1.4;"},"天主教耕莘醫療財團法人耕莘醫院"),
-    e("div",{style:"font-size:24px;color:#93c5fd;margin-top:6px;letter-spacing:2px;font-weight:700;"},"器械登記系統")
+    e("div",{style:"font-size:20px;margin-bottom:6px;"},"🏥"),
+    e("div",{style:"font-size:20px;font-weight:900;letter-spacing:1px;line-height:1.4;"},"天主教耕莘醫療財團法人耕莘醫院"),
+    e("div",{style:"font-size:20px;color:#93c5fd;margin-top:6px;letter-spacing:2px;font-weight:700;"},"器械登記系統")
   ));
 
   const body = e("div",{style:"padding:16px 14px 50px;"});
@@ -158,20 +158,20 @@ function renderHome() {
     ["今日",   orders.filter(o=>o.time&&o.time.startsWith(today().replace(/-/g,"/"))).length, "#10b981"],
   ].forEach(([label,val,color]) => {
     stats.append(e("div",{style:"background:#fff;border-radius:14px;padding:14px 4px;text-align:center;border-top:4px solid "+color+";box-shadow:0 2px 8px rgba(0,0,0,.06);"},
-      e("div",{style:"font-size:26px;font-weight:900;color:"+color+";"},val),
-      e("div",{style:"font-size:13px;color:#6b7280;margin-top:2px;font-weight:600;"},label)
+      e("div",{style:"font-size:20px;font-weight:900;color:"+color+";"},val),
+      e("div",{style:"font-size:20px;color:#6b7280;margin-top:2px;font-weight:600;"},label)
     ));
   });
   body.append(stats);
 
   // ── 病房
-  body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:4px;border-left:4px solid #2563eb;padding-left:10px;"},"🏥 病房"));
+  body.append(e("div",{style:"font-size:20px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:4px;border-left:4px solid #2563eb;padding-left:10px;"},"🏥 病房"));
   const wardCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const wardGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   WARD_UNIT.subs.forEach(sub => {
     const hasPend = false;
     wardGrid.append(e("button",{
-      style:"padding:10px 16px;border:2px solid #2563eb;border-radius:22px;background:#eff6ff;color:#1d4ed8;font-size:16px;font-weight:700;",
+      style:"padding:10px 16px;border:2px solid #2563eb;border-radius:22px;background:#eff6ff;color:#1d4ed8;font-size:20px;font-weight:700;",
       onclick: () => { F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId="ward"; S.view="form"; render(); }
     }, sub));
   });
@@ -179,12 +179,12 @@ function renderHome() {
   body.append(wardCard);
 
   // ── 門診
-  body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #7c3aed;"},"🩺 門診"));
+  body.append(e("div",{style:"font-size:20px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #7c3aed;"},"🩺 門診"));
   const opdCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const opdGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   OPD_UNIT.subs.forEach(sub => {
     opdGrid.append(e("button",{
-      style:"padding:10px 16px;border:2px solid #7c3aed;border-radius:22px;background:#f5f3ff;color:#6d28d9;font-size:16px;font-weight:700;",
+      style:"padding:10px 16px;border:2px solid #7c3aed;border-radius:22px;background:#f5f3ff;color:#6d28d9;font-size:20px;font-weight:700;",
       onclick: () => { F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId="opd"; S.view="form"; render(); }
     }, sub));
   });
@@ -192,7 +192,7 @@ function renderHome() {
   body.append(opdCard);
 
   // ── 其他單位
-  body.append(e("div",{style:"font-size:16px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #10b981;"},"🏪 其他單位"));
+  body.append(e("div",{style:"font-size:20px;font-weight:800;color:#1e293b;margin-bottom:10px;padding-left:10px;border-left:4px solid #10b981;"},"🏪 其他單位"));
   const otherCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:22px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const otherGrid = e("div",{style:"display:grid;grid-template-columns:repeat(8,1fr);gap:8px;"});
   OTHER_UNITS.forEach(u => {
@@ -201,11 +201,11 @@ function renderHome() {
       onclick: () => { F={sub:u.subs[0],urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId=u.id; S.view="form"; render(); }
     },
       e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;"},
-        e("div",{style:"font-size:28px;"},u.icon),
-        e("div",{style:"font-size:30px;font-weight:800;color:"+u.color+";text-align:center;"},u.label)
+        e("div",{style:"font-size:20px;"},u.icon),
+        e("div",{style:"font-size:20px;font-weight:800;color:"+u.color+";text-align:center;"},u.label)
       )
     );
-    if (pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;"},pend[u.id]));
+    if (pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:20px;font-weight:700;padding:1px 6px;border-radius:8px;"},pend[u.id]));
     otherGrid.append(btn);
   });
   otherCard.append(otherGrid);
@@ -220,10 +220,10 @@ function renderHome() {
       else if (pw !== null) alert("密碼錯誤！");
     }
   },
-    e("span",{style:"font-size:26px;"},"📋"),
+    e("span",{style:"font-size:20px;"},"📋"),
     e("div",{},
-      e("div",{style:"font-size:17px;font-weight:800;"},"供應室管理"),
-      e("div",{style:"font-size:13px;color:#93c5fd;margin-top:2px;"},"查看全部送洗單・更新進度・下載報表")
+      e("div",{style:"font-size:20px;font-weight:800;"},"供應室管理"),
+      e("div",{style:"font-size:20px;color:#93c5fd;margin-top:2px;"},"查看全部送洗單・更新進度・下載報表")
     ),
     e("span",{style:"margin-left:auto;color:#93c5fd;font-size:20px;"},"→")
   ));
