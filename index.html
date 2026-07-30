@@ -536,15 +536,16 @@ function renderCssd() {
       e("div",{style:"display:flex;gap:8px;"},
         e("button",{style:"background:rgba(239,68,68,.3);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:30px;font-weight:700;",
           onclick: async () => {
+            const CLOTH_SET = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
             const done = S.orders.filter(o=>{
-              const clothItems = (o.items||[]).filter(it => CLOTH_ONLY_CHECK.has(it.label));
-              const otherItems = (o.items||[]).filter(it => !CLOTH_ONLY_CHECK.has(it.label));
-              const clothDone = clothItems.length===0 || o.statusCloth==="等待送回";
-              const otherDone = otherItems.length===0 || o.statusOther==="等待送回";
-              return clothDone && otherDone;
+              const ci = (o.items||[]).filter(it => CLOTH_SET.has(it.label));
+              const oi = (o.items||[]).filter(it => !CLOTH_SET.has(it.label));
+              const clothOk = ci.length===0 || o.statusCloth==="等待送回";
+              const otherOk = oi.length===0 || o.statusOther==="等待送回";
+              return clothOk && otherOk;
             });
-            if (!done.length) { alert("目前沒有全部完成的記錄"); return; }
-            if (!confirm("確定要清除全部 "+done.length+" 筆已完成記錄？")) return;
+            if (!done.length) { alert("目前沒有兩邊都到等待送回的記錄"); return; }
+            if (!confirm("確定要清除全部 "+done.length+" 筆記錄？")) return;
             for (const o of done) await deleteDoc(doc(db,"orders",o._id));
           }
         },"🗑️ 清除已完成"),
