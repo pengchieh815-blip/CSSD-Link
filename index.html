@@ -103,7 +103,7 @@ const today = () => {
   return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());
 };
 
-let S = {view:"home", unitId:null, orders:[], loading:true};
+let S = {view:"home", unitId:null, orders:[], loading:true, histSub:null, histUnitId:null};
 let F = {sub:"", urgent:"一般", cart:{}, note:"", search:"", openCats:{}, done:false};
 
 onSnapshot(query(collection(db,"orders"),orderBy("ts","desc")), snap => {
@@ -170,6 +170,7 @@ function render() {
   if (S.view==="home") app.append(renderHome());
   else if (S.view==="form") app.append(renderForm());
   else if (S.view==="cssd") app.append(renderCssd());
+  else if (S.view==="history") app.append(renderHistory());
 }
 
 /* ─── HOME ─── */
@@ -195,11 +196,16 @@ function renderHome() {
   const wardCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const wardGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   WARD_UNIT.subs.forEach(sub => {
-    const hasPend = false;
-    wardGrid.append(e("button",{
+    const wrap = e("div",{style:"display:flex;gap:4px;align-items:center;"});
+    wrap.append(e("button",{
       style:"padding:10px 16px;border:2px solid #2563eb;border-radius:22px;background:#eff6ff;color:#1d4ed8;font-size:30px;font-weight:700;",
       onclick: () => { F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId="ward"; S.view="form"; render(); }
     }, sub));
+    wrap.append(e("button",{
+      style:"padding:6px 10px;border:2px solid #93c5fd;border-radius:16px;background:#fff;color:#2563eb;font-size:20px;font-weight:700;",
+      onclick: () => { S.histSub=sub; S.histUnitId="ward"; S.view="history"; render(); }
+    },"📋"));
+    wardGrid.append(wrap);
   });
   wardCard.append(wardGrid);
   body.append(wardCard);
@@ -209,10 +215,16 @@ function renderHome() {
   const opdCard = e("div",{style:"background:#fff;border-radius:16px;padding:16px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.06);"});
   const opdGrid = e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
   OPD_UNIT.subs.forEach(sub => {
-    opdGrid.append(e("button",{
+    const wrap = e("div",{style:"display:flex;gap:4px;align-items:center;"});
+    wrap.append(e("button",{
       style:"padding:10px 16px;border:2px solid #7c3aed;border-radius:22px;background:#f5f3ff;color:#6d28d9;font-size:30px;font-weight:700;",
       onclick: () => { F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false}; S.unitId="opd"; S.view="form"; render(); }
     }, sub));
+    wrap.append(e("button",{
+      style:"padding:6px 10px;border:2px solid #c4b5fd;border-radius:16px;background:#fff;color:#7c3aed;font-size:20px;font-weight:700;",
+      onclick: () => { S.histSub=sub; S.histUnitId="opd"; S.view="history"; render(); }
+    },"📋"));
+    opdGrid.append(wrap);
   });
   opdCard.append(opdGrid);
   body.append(opdCard);
@@ -229,7 +241,11 @@ function renderHome() {
       e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;"},
         e("div",{style:"font-size:30px;"},u.icon),
         e("div",{style:"font-size:30px;font-weight:800;color:"+u.color+";text-align:center;"},u.label)
-      )
+      ),
+      e("button",{
+        style:"position:absolute;top:4px;right:4px;background:#fff;border:2px solid "+u.color+";border-radius:10px;color:"+u.color+";font-size:16px;font-weight:700;padding:2px 6px;z-index:1;",
+        onclick:(ev)=>{ev.stopPropagation();S.histSub=u.subs[0];S.histUnitId=u.id;S.view="history";render();}
+      },"📋")
     );
     if (pend[u.id]>0) btn.append(e("div",{style:"position:absolute;top:5px;right:5px;background:"+u.color+";color:#fff;font-size:30px;font-weight:700;padding:1px 6px;border-radius:8px;"},pend[u.id]));
     otherGrid.append(btn);
@@ -383,7 +399,7 @@ function renderForm() {
     }
   } else {
     // 常用品項 key (per unit)
-    const favKey = "fav_"+S.unitId;
+    const favKey = "fav_"+S.unitId+"_"+F.sub;
     const getFavs = () => { try { return JSON.parse(localStorage.getItem(favKey)||"[]"); } catch(e){ return []; } };
     const toggleFav = (label) => {
       const favs = getFavs();
@@ -630,26 +646,51 @@ function renderCssd() {
       // 兩個下載按鈕
       const dlRow = e("div",{style:"display:flex;gap:8px;"});
 
-      // 明細 CSV（包含 archive）
+      // 明細 CSV（依單位分組，包含 archive）
       dlRow.append(e("button",{
         style:"flex:1;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
         onclick: async () => {
-          // 同時查 orders 和 orders_archive
           const archSnap = await getDocs(collection(db,"orders_archive"));
           const archOrders = archSnap.docs.map(d=>({_id:d.id,...d.data()}));
           const allOrders = [...orders, ...archOrders];
           const filtered = allOrders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
           if(!filtered.length){alert("所選範圍內沒有資料");return;}
-          const rows=[["單號","時間","單位類型","送洗單位","緊急程度","器械名稱","數量","狀態","備註"]];
-          filtered.forEach(o=>{(o.items||[]).forEach((it,i)=>{rows.push([i===0?(o._id||""):"",i===0?(o.time||""):"",i===0?(o.unitLabel||""):"",i===0?(o.sub||""):"",i===0?(o.urgent||""):"",it.label,it.qty,i===0?(o.status||""):"",i===0?(o.note||""):""])});});
+
+          // 依單位類型+子單位分組
+          const groups = {};
+          filtered.forEach(o=>{
+            const key = (o.unitLabel||"其他")+"_"+(o.sub||"");
+            if(!groups[key]) groups[key]={unitLabel:o.unitLabel||"",sub:o.sub||"",orders:[]};
+            groups[key].orders.push(o);
+          });
+
           let csv="\uFEFF";
-          rows.forEach(r=>{csv+=r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")+"\r\n";});
+          Object.values(groups).forEach(g=>{
+            // 群組標題
+            csv+='"【'+g.unitLabel+" - "+g.sub+'】"\r\n';
+            csv+='"單號","時間","送洗單位","緊急程度","器械名稱","數量","備註"\r\n';
+            g.orders.forEach(o=>{
+              (o.items||[]).forEach((it,i)=>{
+                csv+=[
+                  i===0?'"'+(o._id||"")+'"':'""',
+                  i===0?'"'+(o.time||"")+'"':'""',
+                  i===0?'"'+(o.sub||"")+'"':'""',
+                  i===0?'"'+(o.urgent||"")+'"':'""',
+                  '"'+it.label+'"',
+                  '"'+it.qty+'"',
+                  i===0?'"'+(o.note||"")+'"':'""'
+                ].join(",")+"\r\n";
+              });
+            });
+            csv+="\r\n"; // 群組之間空行
+          });
+
           const a=document.createElement("a");
           a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-          a.download="CSSD_明細_"+dFrom+"_"+dTo+".csv";
+          a.download="CSSD_依單位_"+dFrom+"_"+dTo+".csv";
           a.click();
         }
-      },"⬇️ 下載明細"));
+      },"⬇️ 下載明細（依單位）"));
 
       // 品項統計 CSV
       dlRow.append(e("button",{
@@ -804,6 +845,62 @@ function renderCssd() {
     app.append(build());
   }
   return build();
+}
+
+/* ─── HISTORY ─── */
+async function renderHistory() {
+  const sub = S.histSub;
+  const unitId = S.histUnitId;
+  const u = uInfo(unitId);
+
+  const root = e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:"+u.color+";color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:30px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+    e("div",{style:"font-size:30px;font-weight:800;"},u.icon+" "+sub+" 歷史申請"),
+    e("div",{style:"width:80px;"})
+  ));
+
+  const body = e("div",{style:"padding:14px 14px 50px;"});
+  root.append(body);
+
+  const loading = e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:30px;"},"⏳ 載入中…");
+  body.append(loading);
+
+  const [snap1, snap2] = await Promise.all([
+    getDocs(collection(db,"orders")),
+    getDocs(collection(db,"orders_archive"))
+  ]);
+  const all = [
+    ...snap1.docs.map(d=>({_id:d.id,...d.data()})),
+    ...snap2.docs.map(d=>({_id:d.id,...d.data()}))
+  ].filter(o=>o.sub===sub && o.unitId===unitId)
+   .sort((a,b)=>(b.ts||0)-(a.ts||0));
+
+  loading.remove();
+
+  if (!all.length) {
+    body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:30px;"},"尚無歷史申請記錄"));
+    return root;
+  }
+
+  body.append(e("div",{style:"font-size:26px;color:#6b7280;margin-bottom:14px;"},"共 "+all.length+" 筆記錄"));
+
+  all.forEach(o => {
+    const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.06);"});
+    card.append(e("div",{style:"display:flex;justify-content:space-between;margin-bottom:8px;"},
+      e("span",{style:"font-size:26px;font-weight:800;color:#1e293b;"},o.urgent==="急件"?"🔴 急件":"🟢 一般"),
+      e("span",{style:"font-size:24px;color:#9ca3af;"},o.time||"")
+    ));
+    const itemList = e("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"});
+    (o.items||[]).forEach(it=>itemList.append(
+      e("span",{style:"border:2px solid "+u.color+";border-radius:8px;padding:4px 10px;font-size:26px;font-weight:700;color:"+u.color+";"},it.label+" × "+it.qty)
+    ));
+    card.append(itemList);
+    if(o.note) card.append(e("div",{style:"font-size:24px;color:#6b7280;font-style:italic;"},"📝 "+o.note));
+    body.append(card);
+  });
+
+  return root;
 }
 
 render();
