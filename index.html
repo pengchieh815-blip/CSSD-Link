@@ -662,8 +662,8 @@ function renderCssd() {
       const u2=uInfo(order.unitId);
       const clothItems = (order.items||[]).filter(it => CLOTH_ONLY.has(it.label));
       const otherItems = (order.items||[]).filter(it => !CLOTH_ONLY.has(it.label));
-      const clothDone = clothItems.length===0 || o.statusCloth==="等待送回";
-      const otherDone = otherItems.length===0 || o.statusOther==="等待送回";
+      const clothDone = clothItems.length===0 || order.statusCloth==="等待送回";
+      const otherDone = otherItems.length===0 || order.statusOther==="等待送回";
 
       // 各區塊的完成狀態
       let isDone;
