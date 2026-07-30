@@ -492,10 +492,13 @@ function renderForm() {
 
 /* ─── CSSD ADMIN ─── */
 function renderCssd() {
-  let stF="全部", utF="全部", urgO=false, showExp=false;
+  let utF="全部", urgO=false, showExp=false, tabF="全部";
   let dFrom=today(), dTo=today();
 
   function build() {
+    const CLOTH_ITEMS = new Set(CATS.find(c=>c.id==="cloth").items);
+    const isClothOrder = o => (o.items||[]).some(it => CLOTH_ITEMS.has(it.label));
+
     const orders = S.orders;
     const sorted = [...orders].sort((a,b)=>{
       if(a.urgent==="急件"&&b.urgent!=="急件") return -1;
@@ -503,9 +506,10 @@ function renderCssd() {
       return (b.ts||0)-(a.ts||0);
     });
     const shown = sorted.filter(o=>{
-      if(stF!=="全部"&&o.status!==stF) return false;
       if(utF!=="全部"&&o.unitId!==utF) return false;
       if(urgO&&o.urgent!=="急件") return false;
+      if(tabF==="包布類"&&!isClothOrder(o)) return false;
+      if(tabF==="管帶區"&&isClothOrder(o)) return false;
       return true;
     });
 
@@ -555,8 +559,13 @@ function renderCssd() {
       expBox.append(dateRow);
       const expCount = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);}).length;
       expBox.append(e("div",{style:"background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;font-size:30px;color:#166534;margin-bottom:10px;font-weight:700;"},expCount>0?"共 "+expCount+" 筆記錄符合條件":"⚠️ 所選範圍內沒有資料"));
-      expBox.append(e("button",{
-        style:"width:100%;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
+
+      // 兩個下載按鈕
+      const dlRow = e("div",{style:"display:flex;gap:8px;"});
+
+      // 明細 CSV
+      dlRow.append(e("button",{
+        style:"flex:1;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
         onclick: () => {
           const filtered = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
           if(!filtered.length){alert("所選範圍內沒有資料");return;}
@@ -566,12 +575,44 @@ function renderCssd() {
           rows.forEach(r=>{csv+=r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")+"\r\n";});
           const a=document.createElement("a");
           a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
-          a.download="CSSD_Link_"+dFrom+"_"+dTo+".csv";
+          a.download="CSSD_明細_"+dFrom+"_"+dTo+".csv";
           a.click();
         }
-      },"⬇️ 下載 CSV"));
+      },"⬇️ 下載明細"));
+
+      // 品項統計 CSV
+      dlRow.append(e("button",{
+        style:"flex:1;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:30px;font-weight:800;",
+        onclick: () => {
+          const filtered = orders.filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+          if(!filtered.length){alert("所選範圍內沒有資料");return;}
+          // 統計每個品項總量
+          const totals = {};
+          filtered.forEach(o=>{(o.items||[]).forEach(it=>{totals[it.label]=(totals[it.label]||0)+Number(it.qty);});});
+          const rows=[["器械名稱","總數量"]];
+          Object.entries(totals).sort((a,b)=>b[1]-a[1]).forEach(([label,qty])=>rows.push([label,qty]));
+          let csv="\uFEFF";
+          rows.forEach(r=>{csv+=r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")+"\r\n";});
+          const a=document.createElement("a");
+          a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));
+          a.download="CSSD_品項統計_"+dFrom+"_"+dTo+".csv";
+          a.click();
+        }
+      },"📊 下載品項統計"));
+
+      expBox.append(dlRow);
       body.append(expBox);
     }
+
+    // Tab 按鈕
+    const tabRow = e("div",{style:"display:flex;gap:10px;margin-bottom:12px;"});
+    [["全部","#1e293b"],["包布類","#f59e0b"],["管帶區","#2563eb"]].forEach(([tab,color]) => {
+      tabRow.append(e("button",{
+        style:"flex:1;padding:14px;border:none;border-radius:12px;font-size:30px;font-weight:900;background:"+(tabF===tab?color:"#fff")+";color:"+(tabF===tab?"#fff":"#374151")+";box-shadow:0 2px 6px rgba(0,0,0,.08);",
+        onclick:()=>{tabF=tab;rerender();}
+      }, tab==="包布類"?"🧺 包布類":tab==="管帶區"?"🔧 管帶區":"📋 全部"));
+    });
+    body.append(tabRow);
 
     // Filters
     const filterBox = e("div",{style:"background:#fff;border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);"});
@@ -595,14 +636,7 @@ function renderCssd() {
 
     if (!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:30px;"},"目前沒有符合條件的記錄"));
 
-    // 布包類品項名稱
-    const CLOTH_ITEMS = new Set(CATS.find(c=>c.id==="cloth").items);
-    const isClothOrder = o => (o.items||[]).some(it => CLOTH_ITEMS.has(it.label));
-
-    const clothOrders = shown.filter(o => isClothOrder(o));
-    const otherOrders = shown.filter(o => !isClothOrder(o));
-
-    const makeCard = (order) => {
+    shown.forEach(order => body.append(makeCard(order)));
       const u2=uInfo(order.unitId), sc=SC[order.status]||SC["待清洗"];
       const card = e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.08);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":"transparent")+";"});
       const cardHdr = e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
@@ -632,17 +666,7 @@ function renderCssd() {
       return card;
     };
 
-    // ── 包布類區
-    if (clothOrders.length > 0) {
-      body.append(e("div",{style:"font-size:30px;font-weight:900;color:#1e293b;margin-bottom:10px;padding:10px 16px;background:#fef9c3;border-left:6px solid #f59e0b;border-radius:8px;"},"🧺 包布類（"+clothOrders.length+" 筆）"));
-      clothOrders.forEach(o => body.append(makeCard(o)));
-    }
-
-    // ── 管帶區
-    if (otherOrders.length > 0) {
-      body.append(e("div",{style:"font-size:30px;font-weight:900;color:#1e293b;margin-bottom:10px;margin-top:16px;padding:10px 16px;background:#eff6ff;border-left:6px solid #2563eb;border-radius:8px;"},"🔧 管帶（"+otherOrders.length+" 筆）"));
-      otherOrders.forEach(o => body.append(makeCard(o)));
-    }
+    shown.forEach(order => body.append(makeCard(order)));
 
     root.append(body);
     return root;
