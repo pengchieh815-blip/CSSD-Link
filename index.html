@@ -539,8 +539,8 @@ function renderCssd() {
             const done = S.orders.filter(o=>{
               const clothItems = (o.items||[]).filter(it => CLOTH_ONLY_CHECK.has(it.label));
               const otherItems = (o.items||[]).filter(it => !CLOTH_ONLY_CHECK.has(it.label));
-              const clothDone = clothItems.length===0 || !!o.statusCloth;
-              const otherDone = otherItems.length===0 || !!o.statusOther;
+              const clothDone = clothItems.length===0 || o.statusCloth==="等待送回";
+              const otherDone = otherItems.length===0 || o.statusOther==="等待送回";
               return clothDone && otherDone;
             });
             if (!done.length) { alert("目前沒有全部完成的記錄"); return; }
@@ -662,8 +662,8 @@ function renderCssd() {
       const u2=uInfo(order.unitId);
       const clothItems = (order.items||[]).filter(it => CLOTH_ONLY.has(it.label));
       const otherItems = (order.items||[]).filter(it => !CLOTH_ONLY.has(it.label));
-      const clothDone = clothItems.length===0 || !!order.statusCloth;
-      const otherDone = otherItems.length===0 || !!order.statusOther;
+      const clothDone = clothItems.length===0 || o.statusCloth==="等待送回";
+      const otherDone = otherItems.length===0 || o.statusOther==="等待送回";
 
       // 各區塊的完成狀態
       let isDone;
@@ -690,25 +690,36 @@ function renderCssd() {
       const stRow2 = e("div",{style:"display:flex;gap:8px;"});
 
       if (section==="全部") {
-        // 全部頁：分別顯示包布和管帶的完成狀態
+        // 包布狀態按鈕
         if (clothItems.length>0) {
           if (!order.statusCloth) {
             stRow2.append(e("button",{
               style:"flex:1;padding:14px;border:none;border-radius:10px;background:#f59e0b;color:#fff;font-size:24px;font-weight:900;",
-              onclick: () => updateDoc(doc(db,"orders",order._id),{statusCloth:true})
+              onclick: () => updateDoc(doc(db,"orders",order._id),{statusCloth:"已完成"})
             },"🧺 包布完成"));
+          } else if (order.statusCloth==="已完成") {
+            stRow2.append(e("button",{
+              style:"flex:1;padding:14px;border:none;border-radius:10px;background:#0891b2;color:#fff;font-size:24px;font-weight:900;",
+              onclick: () => updateDoc(doc(db,"orders",order._id),{statusCloth:"等待送回"})
+            },"🧺 包布→送回"));
           } else {
-            stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#fef9c3;color:#92400e;font-size:24px;font-weight:900;text-align:center;border:2px solid #fde68a;"},"🧺 包布✅"));
+            stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#ecfeff;color:#0891b2;font-size:24px;font-weight:900;text-align:center;border:2px solid #a5f3fc;"},"🧺 等待送回"));
           }
         }
+        // 管帶狀態按鈕
         if (otherItems.length>0) {
           if (!order.statusOther) {
             stRow2.append(e("button",{
               style:"flex:1;padding:14px;border:none;border-radius:10px;background:#2563eb;color:#fff;font-size:24px;font-weight:900;",
-              onclick: () => updateDoc(doc(db,"orders",order._id),{statusOther:true})
+              onclick: () => updateDoc(doc(db,"orders",order._id),{statusOther:"已完成"})
             },"🔧 管帶完成"));
+          } else if (order.statusOther==="已完成") {
+            stRow2.append(e("button",{
+              style:"flex:1;padding:14px;border:none;border-radius:10px;background:#0891b2;color:#fff;font-size:24px;font-weight:900;",
+              onclick: () => updateDoc(doc(db,"orders",order._id),{statusOther:"等待送回"})
+            },"🔧 管帶→送回"));
           } else {
-            stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#eff6ff;color:#1d4ed8;font-size:24px;font-weight:900;text-align:center;border:2px solid #bfdbfe;"},"🔧 管帶✅"));
+            stRow2.append(e("div",{style:"flex:1;padding:14px;border-radius:10px;background:#ecfeff;color:#0891b2;font-size:24px;font-weight:900;text-align:center;border:2px solid #a5f3fc;"},"🔧 等待送回"));
           }
         }
       } else {
