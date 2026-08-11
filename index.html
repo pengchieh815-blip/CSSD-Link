@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSSD Link</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, "PingFang TC", "Microsoft JhengHei", sans-serif; background: #eef2f7; font-size: 17px; }
+input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+input[type=number] { -moz-appearance: textfield; }
+button { cursor: pointer; font-family: inherit; }
+:root { --cols-unit: 4; --cols-cat: 4; --cols-item: 4; }
+@media (min-width: 768px) { :root { --cols-unit: 8; --cols-cat: 6; --cols-item: 6; } }
+@media (min-width: 1200px) { :root { --cols-unit: 16; --cols-cat: 8; --cols-item: 8; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyCjQL21WU_rabDnEwyH9cz3CznvWNQyswM",
+  authDomain: "cssd-link.firebaseapp.com",
+  projectId: "cssd-link",
+  storageBucket: "cssd-link.firebasestorage.app",
+  messagingSenderId: "15522934907",
+  appId: "1:15522934907:web:06b4e6786ca1ebaaebb2de"
+});
+const db = getFirestore(app);
+
+const WARD_UNIT = {id:"ward", label:"病房", icon:"🏥", color:"#2563eb", light:"#eff6ff",
+  subs:["4A","9A","6E","DR","BR","7E","8E","10E","11E","12E","13E","NBC","CCU","MICU-1","MICU-2","SICU","HR","護理之家","手術室"]};
+const OPD_UNIT = {id:"opd", label:"門診", icon:"⚕️", color:"#7c3aed", light:"#f5f3ff",
+  subs:["C201","C202","B502","B503","B102","B103","B104","B105","B106","B108","A104","A122","B109","注射室","眼科","ENT","皮膚科","RT","OBS","中醫","美醫"]};
+const OTHER_UNITS = [
+  {id:"clinic", label:"耕莘診所", icon:"🏪", color:"#065f46", light:"#ecfdf5", subs:["耕莘診所"]},
+  {id:"dental",  label:"牙科",    icon:"🦷", color:"#16a34a", light:"#f0fdf4", subs:["牙科"]},
+  {id:"health",  label:"健促中心",icon:"💪", color:"#0d9488", light:"#f0fdfa", subs:["健促中心"]},
+  {id:"cath",    label:"心導管室",icon:"❤️", color:"#dc2626", light:"#fef2f2", subs:["心導管室"]},
+  {id:"home",    label:"居護組",  icon:"🏠", color:"#b45309", light:"#fffbeb", subs:["居護組"]},
+  {id:"urod",    label:"尿路動力",icon:"🔬", color:"#0891b2", light:"#ecfeff", subs:["尿路動力"]},
+  {id:"fm",      label:"家醫科",  icon:"👨‍⚕️",color:"#4f46e5", light:"#eef2ff", subs:["家醫科"]},
+  {id:"xray",    label:"X光科",  icon:"☢️", color:"#64748b", light:"#f8fafc", subs:["X光科"]},
+  {id:"anes",    label:"麻醉科",  icon:"💉", color:"#9333ea", light:"#faf5ff", subs:["麻醉科"]},
+  {id:"breast",  label:"乳超",    icon:"📡", color:"#db2777", light:"#fdf2f8", subs:["乳超"]},
+  {id:"radio",   label:"放腫科",  icon:"⚡", color:"#ea580c", light:"#fff7ed", subs:["放腫科"]},
+  {id:"hbo",     label:"高壓氧",  icon:"🛸", color:"#0369a1", light:"#f0f9ff", subs:["高壓氧"]},
+  {id:"pet",     label:"正子中心",icon:"🧬", color:"#7c3aed", light:"#f5f3ff", subs:["正子中心"]},
+  {id:"image",   label:"影像中心",icon:"🖥️", color:"#374151", light:"#f9fafb", subs:["影像中心"]},
+  {id:"physio",  label:"生理檢查室",icon:"🌬️",color:"#0e7490", light:"#ecfeff", subs:["生理檢查室"]},
+];
+const UNITS = [WARD_UNIT, OPD_UNIT, ...OTHER_UNITS];
+
+const CATS = [
+  {id:"cloth",    label:"布包類",       icon:"🧺", items:["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]},
+  {id:"gauze",    label:"棉紗類",       icon:"➕", items:["棉球12顆","棉球3顆","紗條(粗)","紗條(細)","紗布3*3","止血棉","紗球4顆","切棉"]},
+  {id:"ca",       label:"CA配盤",       icon:"📦", items:["收 CA配盤(1)","收 CA配盤(2)","收 CA配盤(3)","送 CA配盤(1)","送 CA配盤(2)","送 CA配盤(3)"]},
+  {id:"forceps",  label:"鑷子類",       icon:"🔧", items:["無齒鑷子(特長)","有齒鑷子(特長)","無齒鑷子(18CM)","無齒鑷子(14CM)","有齒鑷子(18CM)","有齒鑷子(14CM)","細小鑷子(10-12CM)","Adson(無齒)AS","Adson(有齒)AT","ENT鑷子","三孔鑷子","教授/院長耳鑷","耵聹鉗","子宮鉗","拖舌鉗","異物勾","止血鉗","Allis","Babcock","Kocher","SKIN HOOK","HOOK"]},
+  {id:"scissors", label:"剪刀類",       icon:"✂️", items:["拆線剪刀(雙尖)","拆線剪刀(平、尖)","組織剪(彎)","小直剪","小彎美容剪","小斜剪","繃帶剪","鋼剪/拆釘器","鋼剪(鐵)"]},
+  {id:"clamp",    label:"止血鉗類",     icon:"🔩", items:["Kelly直(大)","Kelly直(中)","Kelly直(小)","Kelly彎(大)","Kelly彎(中)","Kelly彎(小)","小彎紋鉗Mosquitto","小直紋鉗Mosquitto","產鉗","拉鉤(單)","拉鉤(雙)","壓腸板","上下葉"]},
+  {id:"needle",   label:"持針器/刀柄",  icon:"🧵", items:["持針器(大)","持針器(中)","持針器(小)","刀柄#3"]},
+  {id:"airway",   label:"E.O",          icon:"💨", items:["EO","Mask","Anbu bag 接頭","Anbu bag","Peep","氣管交換條","喉頭鏡葉片","LMA口腔內塊插管","滅音器","鼻管","蛇形管","呼吸器管路","拍痰杯","氣切套管","吸球","連接管"]},
+  {id:"container",label:"容器類",       icon:"🥫", items:["彎盆","小鋼杯","換藥碗","玻璃測壓管","大泡鑷罐(有鑷)","中泡鑷罐(有鑷)","中泡鑷罐(無鑷)","中敷料罐/棉球罐","小敷料罐/棉球罐","便當盒","廣口瓶(IV瓶)","沖洗壺","沖奶器","奶瓶","浴盆"]},
+  {id:"kits",     label:"包組類",       icon:"📋", items:["縫合包","CVP包","整形包","臍靜脈切開包","中央靜脈切開包","腰椎穿刺包","氣管切開包","插胸管包","器械產包","戒治包","I&D包","C/S包","C/S SET","小C包","針包","大器械盒(包)","小器械盒(包)","敷料桶(大)","敷料桶(小)","敷料包"]},
+  {id:"baby",     label:"嬰兒/婦產類",  icon:"👶", items:["奶蓋(桶)(包)","奶片(桶)(包)","奶嘴(桶)(包)","安撫奶嘴","刷子","鴨嘴","張口器","子宮探針","組織內膜採樣器","HSG"]},
+  {id:"scope",    label:"內視鏡/腸胃類",icon:"🔭", items:["切片夾(胃)","切片夾(腸)","SNEAR(胃)","SNEAR(腸)","腸三爪","EVL結紮器","腸熱切片","ERCP切刀","取石網","異物夾","止血釘","過濾器","異物環","異物網","燈把"]},
+  {id:"cath_i",   label:"導管/特殊類",  icon:"🫀", items:["電刀","電燒夾","電燒網","電燒頭","Scution Tip","教授/院長suction","壓脈帶","通條","楊桃(配件)","夾子(配件)","海綿(配件)","帽子","隱球菌試管(白頭)","塑膠針頭","塑膠管套","拉勾","盒子","縫線","植入物","管袋","器械(包)","器械(盒)","刷手架"]},
+  {id:"misc",     label:"其他",         icon:"📦", items:["刮匙","探針","別針","壓舌板","R-F","Vacuum","組織切片器","Rounger","老虎鉗","青春棒","肛門鏡","餵食杯","Suction","mastersan","紙片","其他"]},
+];
+
+const CLOTH_SET = new Set(["洞巾","治療巾","洞巾(小)","CVC布包","產包","大包(一)","大包(二)","衣服包(三)","大衣(一件)","GU衣","中包布","OPD包","長腳套","GU包","皮膚包","手腳蓋單","ENT洞巾包","心導管檢查包","早產包布","大產包","小產包","綁帶","消毒包","毛巾包"]);
+
+const ALL_ITEMS = [];
+CATS.forEach(c => c.items.forEach(i => ALL_ITEMS.push({label:i, catLabel:c.label})));
+
+const uInfo = id => UNITS.find(u=>u.id===id)||UNITS[0];
+const now = () => { const d=new Date(),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"/"+p(d.getMonth()+1)+"/"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes()); };
+const today = () => { const d=new Date(),p=n=>String(n).padStart(2,"0"); return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()); };
+const getCustom = (key,def) => { try{return JSON.parse(localStorage.getItem("setting_"+key)||"null")||def;}catch(e){return def;} };
+const setCustom = (key,val) => localStorage.setItem("setting_"+key, JSON.stringify(val));
+
+let S = {view:"home", unitId:null, orders:[], loading:true, histSub:null, histUnitId:null};
+let F = {sub:"", urgent:"一般", cart:{}, note:"", search:"", openCats:{}, done:false};
+
+onSnapshot(query(collection(db,"orders"),orderBy("ts","desc")), snap => {
+  S.orders = snap.docs.map(d=>({_id:d.id,...d.data()}));
+  S.loading = false;
+  render();
+});
+
+// Archive & delete
+const archiveAndDelete = async (list) => {
+  for (const o of list) {
+    const {_id,...data} = o;
+    await addDoc(collection(db,"orders_archive"),{...data, archivedAt:Date.now()});
+    await deleteDoc(doc(db,"orders",_id));
+  }
+};
+
+// Daily auto-clear at 23:59
+const scheduleDailyClean = () => {
+  const n=new Date(), next=new Date(n);
+  next.setHours(23,59,0,0);
+  if(next<=n) next.setDate(next.getDate()+1);
+  setTimeout(async()=>{
+    const snap=await getDocs(collection(db,"orders"));
+    const all=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    if(all.length) await archiveAndDelete(all);
+    scheduleDailyClean();
+  }, next-n);
+};
+scheduleDailyClean();
+
+function e(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k,v] of Object.entries(props||{})) {
+    if(k==="style") el.style.cssText=v;
+    else if(k==="class") el.className=v;
+    else if(k.startsWith("on")) el.addEventListener(k.slice(2),v);
+    else if(k==="disabled"&&v) el.disabled=true;
+    else if(k==="value") el.value=v;
+    else if(k==="placeholder") el.placeholder=v;
+    else if(k==="type") el.type=v;
+    else if(k==="rows") el.rows=v;
+    else if(k==="min") el.min=v;
+    else el.setAttribute(k,v);
+  }
+  for (const k of kids.flat(Infinity)) {
+    if(k==null||k===false) continue;
+    el.append(typeof k==="string"?document.createTextNode(k):k);
+  }
+  return el;
+}
+
+function render() {
+  if(S.loading){document.getElementById("app").innerHTML='<div style="height:100vh;display:flex;align-items:center;justify-content:center;font-size:20px;color:#6b7280;">⏳ 載入中…</div>';return;}
+  const app=document.getElementById("app");
+  app.innerHTML="";
+  if(S.view==="home") app.append(renderHome());
+  else if(S.view==="home_inner") app.append(renderHomeInner());
+  else if(S.view==="form") app.append(renderForm());
+  else if(S.view==="cssd") app.append(renderCssd());
+  else if(S.view==="history") app.append(renderHistory());
+  else if(S.view==="settings") app.append(renderSettings());
+  else if(S.view==="vendor") app.append(renderVendor());
+  else if(S.view==="vendor_cssd") app.append(renderVendorCssd());
+}
+
+/* ─── HOME ─── */
+function renderHome() {
+  const root=e("div",{style:"min-height:100vh;background:#eef2f7;"});
+  root.append(e("div",{style:"background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff;padding:36px 20px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.15);"},
+    e("div",{style:"font-size:50px;font-weight:900;line-height:1.3;"},"天主教耕莘醫療財團法人耕莘醫院"),
+    e("div",{style:"font-size:40px;color:#dbeafe;margin-top:8px;font-weight:700;"},"器械登記系統")
+  ));
+  const body=e("div",{style:"padding:30px 20px 50px;display:flex;flex-direction:column;gap:16px;"});
+  body.append(e("button",{
+    style:"width:100%;background:#fff;border:3px solid #2563eb;border-radius:20px;padding:30px 20px;display:flex;align-items:center;gap:20px;text-align:left;box-shadow:0 4px 16px rgba(37,99,235,.1);",
+    onclick:()=>{S.view="home_inner";render();}
+  },e("span",{style:"font-size:50px;"},"🏥"),e("div",{},e("div",{style:"font-size:32px;font-weight:900;color:#1d4ed8;"},"院內人員"),e("div",{style:"font-size:24px;color:#6b7280;margin-top:4px;"},"病房・門診・各單位送洗登記")),e("span",{style:"margin-left:auto;color:#2563eb;font-size:36px;"},"→")));
+  body.append(e("button",{
+    style:"width:100%;background:#fff;border:3px solid #b45309;border-radius:20px;padding:30px 20px;display:flex;align-items:center;gap:20px;text-align:left;box-shadow:0 4px 16px rgba(180,83,9,.1);",
+    onclick:()=>{S.view="vendor";render();}
+  },e("span",{style:"font-size:50px;"},"🏭"),e("div",{},e("div",{style:"font-size:32px;font-weight:900;color:#b45309;"},"院外廠商"),e("div",{style:"font-size:24px;color:#6b7280;margin-top:4px;"},"寄銷器械送洗登記")),e("span",{style:"margin-left:auto;color:#b45309;font-size:36px;"},"→")));
+  body.append(e("button",{
+    style:"width:100%;background:#1e293b;color:#fff;border:none;border-radius:16px;padding:22px 20px;display:flex;align-items:center;gap:14px;",
+    onclick:()=>{const pw=prompt("請輸入供應室密碼：");if(pw==="2600"){S.view="cssd";render();}else if(pw!==null)alert("密碼錯誤！");}
+  },e("span",{style:"font-size:36px;"},"📋"),e("div",{},e("div",{style:"font-size:30px;font-weight:800;"},"供應室管理"),e("div",{style:"font-size:24px;color:#93c5fd;margin-top:2px;"},"送洗單・進度・報表")),e("span",{style:"margin-left:auto;color:#93c5fd;font-size:30px;"},"→")));
+  body.append(e("button",{
+    style:"width:100%;background:#475569;color:#fff;border:none;border-radius:16px;padding:22px 20px;display:flex;align-items:center;gap:14px;",
+    onclick:()=>{const pw=prompt("請輸入設定密碼：");if({pw==="2600"){S.view="settings";render();}else if(pw!==null)alert("密碼錯誤！");}
+  },e("span",{style:"font-size:36px;"},"⚙️"),e("div",{},e("div",{style:"font-size:30px;font-weight:800;"},"總設定"),e("div",{style:"font-size:24px;color:#cbd5e1;margin-top:2px;"},"單位・器械・分類管理")),e("span",{style:"margin-left:auto;color:#cbd5e1;font-size:30px;"},"→")));
+  root.append(body);
+  return root;
+}
+
+/* ─── HOME INNER ─── */
+function renderHomeInner() {
+  const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:#2563eb;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+    e("div",{style:"font-size:28px;font-weight:800;"},"🏥 院內送洗登記"),
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"🏠 首頁")
+  ));
+  const body=e("div",{style:"padding:16px 14px 50px;"});
+
+  body.append(e("div",{style:"font-size:28px;font-weight:800;color:#1e293b;margin-bottom:8px;padding-left:10px;border-left:4px solid #2563eb;"},"🏥 病房"));
+  const wCard=e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);"});
+  const wGrid=e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
+  const wSubs=[...WARD_UNIT.subs,...getCustom("subs_ward",[])];
+  wSubs.forEach(sub=>{wGrid.append(e("button",{style:"padding:10px 16px;border:2px solid #2563eb;border-radius:22px;background:#eff6ff;color:#1d4ed8;font-size:28px;font-weight:700;",onclick:()=>{F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false};S.unitId="ward";S.view="form";render();},},sub));});
+  wCard.append(wGrid);body.append(wCard);
+
+  body.append(e("div",{style:"font-size:28px;font-weight:800;color:#1e293b;margin-bottom:8px;padding-left:10px;border-left:4px solid #7c3aed;"},"⚕️ 門診"));
+  const oCard=e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);"});
+  const oGrid=e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
+  const oSubs=[...OPD_UNIT.subs,...getCustom("subs_opd",[])];
+  oSubs.forEach(sub=>{oGrid.append(e("button",{style:"padding:10px 16px;border:2px solid #7c3aed;border-radius:22px;background:#f5f3ff;color:#6d28d9;font-size:28px;font-weight:700;",onclick:()=>{F={sub,urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false};S.unitId="opd";S.view="form";render();},},sub));});
+  oCard.append(oGrid);body.append(oCard);
+
+  body.append(e("div",{style:"font-size:28px;font-weight:800;color:#1e293b;margin-bottom:8px;padding-left:10px;border-left:4px solid #10b981;"},"🏪 其他單位"));
+  const aCard=e("div",{style:"background:#fff;border-radius:14px;padding:14px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);"});
+  const aGrid=e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-unit),1fr);gap:8px;"});
+  const extraUnits=getCustom("extra_units",[]);
+  [...OTHER_UNITS,...extraUnits].forEach(u=>{
+    aGrid.append(e("button",{
+      style:"background:"+u.light+";border:2px solid "+u.color+";border-radius:12px;width:100%;padding-bottom:100%;position:relative;display:block;",
+      onclick:()=>{F={sub:u.subs[0],urgent:"一般",cart:{},note:"",search:"",openCats:{},done:false};S.unitId=u.id;S.view="form";render();}
+    },e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px;"},
+      e("div",{style:"font-size:26px;"},u.icon),
+      e("div",{style:"font-size:22px;font-weight:800;color:"+u.color+";text-align:center;line-height:1.2;"},u.label)
+    )));
+  });
+  aCard.append(aGrid);body.append(aCard);
+  root.append(body);
+  return root;
+}
+
+/* ─── FORM ─── */
+function renderForm() {
+  const u=uInfo(S.unitId);
+  const {sub,urgent,cart,note,search,openCats,done}=F;
+  const total=Object.values(cart).reduce((a,b)=>a+b,0);
+  const canSubmit=sub&&total>0;
+  const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:"+u.color+";color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home_inner";render();}},"← 返回"),
+    e("div",{style:"font-size:26px;font-weight:800;"},u.icon+" "+u.label+" 送洗"),
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:22px;font-weight:700;",onclick:()=>{S.histSub=sub;S.histUnitId=S.unitId;S.view="history";render();}},"📋 歷史")
+  ));
+
+  if(done){
+    root.append(e("div",{style:"display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"},
+      e("div",{style:"font-size:60px;margin-bottom:12px;"},"✅"),
+      e("div",{style:"font-size:28px;font-weight:900;color:#065f46;margin-bottom:8px;"},"送洗申請已送出！"),
+      e("button",{style:"margin-top:16px;padding:16px 32px;background:"+u.color+";color:#fff;border:none;border-radius:12px;font-size:26px;font-weight:800;",onclick:()=>{S.view="home";render();}},"返回首頁")
+    ));
+    return root;
+  }
+
+  const body=e("div",{style:"padding:14px 14px 50px;"});
+  const setQty=(label,val)=>{const n=Math.max(0,parseInt(val)||0);const c=Object.assign({},F.cart);if(n===0)delete c[label];else c[label]=n;F.cart=c;render();};
+  const sec=(label,req,content)=>e("div",{style:"margin-bottom:18px;"},e("div",{style:"font-size:26px;font-weight:800;color:#1e293b;margin-bottom:8px;"},label,req?e("span",{style:"color:#ef4444;margin-left:3px;"},"*"):null),content);
+
+  // Sub unit selector
+  if(u.subs.length>1){
+    const chips=e("div",{style:"display:flex;flex-wrap:wrap;gap:8px;"});
+    u.subs.forEach(s=>chips.append(e("button",{style:"padding:10px 18px;border:2.5px solid "+(sub===s?u.color:"#d1d5db")+";border-radius:22px;background:"+(sub===s?u.color:"#fff")+";color:"+(sub===s?"#fff":"#374151")+";font-size:26px;font-weight:"+(sub===s?700:500)+";",onclick:()=>{F.sub=s;render();}},s)));
+    body.append(sec("送洗單位",true,chips));
+  } else {
+    body.append(e("div",{style:"background:"+u.light+";border:2px solid "+u.color+";border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:26px;font-weight:700;color:"+u.color+";"},"📍 送洗單位："+sub));
+  }
+
+  // Urgency
+  const urgRow=e("div",{style:"display:flex;gap:12px;"});
+  ["一般","急件"].forEach(u2=>urgRow.append(e("button",{style:"flex:1;padding:14px;border:none;border-radius:12px;font-size:26px;font-weight:800;background:"+(urgent===u2?(u2==="急件"?"#ef4444":"#10b981"):"#f3f4f6")+";color:"+(urgent===u2?"#fff":"#6b7280")+";",onclick:()=>{F.urgent=u2;render();}},u2==="急件"?"🔴 急件":"🟢 一般")));
+  body.append(sec("緊急程度",false,urgRow));
+
+  // Dental special case
+  if(S.unitId==="dental"){
+    const qty=cart["牙科包"]||0;
+    const box=e("div",{style:"background:#fff;border:2.5px solid "+u.color+";border-radius:14px;padding:24px;text-align:center;"});
+    box.append(e("div",{style:"font-size:28px;font-weight:800;margin-bottom:16px;"},"🦷 牙科包"));
+    const qr=e("div",{style:"display:flex;align-items:center;justify-content:center;gap:16px;"});
+    qr.append(e("button",{style:"width:50px;height:50px;border-radius:50%;border:2px solid #d1d5db;background:#fff;font-size:26px;",onclick:()=>setQty("牙科包",qty-1)},"－"),e("span",{style:"font-size:36px;font-weight:900;color:"+u.color+";min-width:50px;text-align:center;"},qty||0),e("button",{style:"width:50px;height:50px;border-radius:50%;border:none;background:"+u.color+";color:#fff;font-size:26px;",onclick:()=>setQty("牙科包",qty+1)},"＋"));
+    box.append(qr);
+    body.append(sec("器械品項"+(total>0?" （已選 "+total+" 件）":""),true,box));
+  } else {
+    const itemsWrap=e("div",{});
+    if(total>0){
+      const cb=e("div",{style:"background:#f0fdf4;border:2px solid #86efac;border-radius:12px;padding:12px 14px;margin-bottom:12px;"});
+      cb.append(e("div",{style:"font-size:24px;font-weight:800;color:#065f46;margin-bottom:8px;"},"✅ 已選（共 "+total+" 件）"));
+      Object.entries(cart).forEach(([label,qty])=>{
+        const row=e("div",{style:"display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;"});
+        row.append(e("span",{style:"font-size:24px;color:#1e293b;flex:1;font-weight:600;"},label));
+        const qr=e("div",{style:"display:flex;align-items:center;gap:6px;"});
+        qr.append(e("button",{style:"width:36px;height:36px;border-radius:50%;border:2px solid #d1d5db;background:#fff;font-size:20px;",onclick:()=>setQty(label,qty-1)},"－"),e("span",{style:"font-size:24px;font-weight:800;min-width:28px;text-align:center;"},qty),e("button",{style:"width:36px;height:36px;border-radius:50%;border:none;background:"+u.color+";color:#fff;font-size:20px;",onclick:()=>setQty(label,qty+1)},"＋"),e("button",{style:"width:36px;height:36px;border-radius:50%;border:none;background:#fee2e2;color:#dc2626;font-size:16px;",onclick:()=>setQty(label,0)},"✕"));
+        row.append(qr);cb.append(row);
+      });
+      itemsWrap.append(cb);
+    }
+    // Search
+    const sw=e("div",{style:"display:flex;align-items:center;background:#fff;border:2.5px solid #d1d5db;border-radius:12px;padding:0 14px;margin-bottom:10px;"});
+    const si=e("input",{type:"text",style:"flex:1;border:none;outline:none;padding:12px 0;font-size:24px;background:transparent;",placeholder:"搜尋品項…",value:search});
+    si.addEventListener("input",ev=>{F.search=ev.target.value;render();});
+    sw.append(e("span",{style:"font-size:24px;margin-right:8px;"},"🔍"),si);
+    if(search) sw.append(e("button",{style:"background:none;border:none;color:#9ca3af;font-size:24px;",onclick:()=>{F.search="";render();}},"✕"));
+    itemsWrap.append(sw);
+
+    const favKey="fav_"+S.unitId+"_"+F.sub;
+    const getFavs=()=>{try{return JSON.parse(localStorage.getItem(favKey)||"[]");}catch(e){return [];}};
+    const toggleFav=(label)=>{const favs=getFavs();const idx=favs.indexOf(label);if(idx>=0)favs.splice(idx,1);else favs.push(label);localStorage.setItem(favKey,JSON.stringify(favs));render();};
+    const favs=getFavs();
+
+    const makeTile=(label)=>{
+      const qty=cart[label]||0,sel=qty>0,isFav=favs.includes(label);
+      const tile=e("div",{style:"width:100%;padding-bottom:100%;position:relative;display:block;background:"+(sel?u.color:"#fff")+";border:2.5px solid "+(sel?u.color:"#e5e7eb")+";border-radius:12px;cursor:pointer;",onclick:()=>setQty(label,qty===0?1:0)},
+        e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;"},
+          e("div",{style:"font-size:22px;font-weight:700;color:"+(sel?"#fff":"#374151")+";line-height:1.3;text-align:center;"},label),
+          sel?e("div",{style:"display:flex;justify-content:center;gap:6px;margin-top:8px;"},
+            e("button",{style:"width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(0,0,0,.25);color:#fff;font-size:18px;",onclick:(ev)=>{ev.stopPropagation();setQty(label,qty-1);}},"－"),
+            e("span",{style:"font-size:20px;font-weight:900;color:#fff;min-width:20px;text-align:center;"},qty),
+            e("button",{style:"width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(0,0,0,.25);color:#fff;font-size:18px;",onclick:(ev)=>{ev.stopPropagation();setQty(label,qty+1);}},"＋")
+          ):null
+        ),
+        e("button",{style:"position:absolute;top:2px;right:2px;background:none;border:none;font-size:14px;cursor:pointer;",onclick:(ev)=>{ev.stopPropagation();toggleFav(label);}},isFav?"⭐":"☆")
+      );
+      return tile;
+    };
+
+    if(search.trim()){
+      const res=ALL_ITEMS.filter(i=>i.label.toLowerCase().includes(search.trim().toLowerCase()));
+      if(!res.length){itemsWrap.append(e("div",{style:"padding:20px;text-align:center;color:#9ca3af;font-size:22px;background:#fff;border-radius:12px;"},"找不到符合的品項"));}
+      else{const tg=e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-item),1fr);gap:8px;"});res.forEach(it=>tg.append(makeTile(it.label)));itemsWrap.append(tg);}
+    } else {
+      const catGrid=e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-cat),1fr);gap:10px;margin-bottom:12px;"});
+      // Fav tile
+      const fSel=favs.filter(i=>cart[i]>0).length,fOpen=!!openCats["__fav__"];
+      catGrid.append(e("div",{style:"width:100%;padding-bottom:100%;position:relative;display:block;background:"+(fSel>0?u.light:(fOpen?"#fefce8":"#fffbeb"))+";border:2.5px solid "+(fSel>0?u.color:(fOpen?"#fbbf24":"#fde68a"))+";border-radius:14px;cursor:pointer;",onclick:()=>{F.openCats=Object.assign({},openCats,{"__fav__":!fOpen});render();}},
+        e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;"},
+          e("div",{style:"font-size:24px;"},"⭐"),e("div",{style:"font-size:20px;font-weight:800;color:#b45309;text-align:center;"},"常用"),
+          favs.length>0?e("div",{style:"font-size:16px;color:#92400e;"},favs.length+" 項"):null
+        )
+      ));
+      CATS.forEach(c=>{
+        const selC=c.items.filter(i=>cart[i]>0).length,isO=!!openCats[c.id];
+        catGrid.append(e("div",{style:"width:100%;padding-bottom:100%;position:relative;display:block;background:"+(selC>0?u.light:(isO?"#f1f5f9":"#fff"))+";border:2.5px solid "+(selC>0?u.color:(isO?"#94a3b8":"#e5e7eb"))+";border-radius:14px;cursor:pointer;",onclick:()=>{F.openCats=Object.assign({},openCats,{[c.id]:!isO});render();}},
+          e("div",{style:"position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;"},
+            e("div",{style:"font-size:22px;"},c.icon),e("div",{style:"font-size:18px;font-weight:800;color:"+(selC>0?u.color:"#374151")+";text-align:center;line-height:1.2;"},c.label),
+            selC>0?e("div",{style:"margin-top:4px;background:"+u.color+";color:#fff;font-size:14px;font-weight:800;padding:2px 6px;border-radius:6px;"},"已選 "+selC):null
+          )
+        ));
+      });
+      itemsWrap.append(catGrid);
+
+      // Fav open
+      if(fOpen){
+        const fb=e("div",{style:"border:2.5px solid #fbbf24;border-radius:14px;overflow:hidden;margin-bottom:8px;"});
+        fb.append(e("div",{style:"display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fefce8;"},e("span",{style:"font-size:22px;font-weight:800;color:#92400e;"},"⭐ 常用品項"),e("button",{style:"background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;",onclick:()=>{F.openCats=Object.assign({},openCats,{"__fav__":false});render();}},"✕")));
+        if(!favs.length){fb.append(e("div",{style:"padding:16px;text-align:center;color:#9ca3af;font-size:20px;"},"尚未加入常用品項\n點品項右上角 ☆ 可加入"));}
+        else{const tg=e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-item),1fr);gap:8px;padding:12px;"});favs.forEach(l=>tg.append(makeTile(l)));fb.append(tg);}
+        itemsWrap.append(fb);
+      }
+      // Cat open
+      CATS.forEach(c=>{
+        if(!openCats[c.id]) return;
+        const selC=c.items.filter(i=>cart[i]>0).length;
+        const extraItems=getCustom("items_"+c.id,[]);
+        const allItems=[...c.items,...extraItems];
+        const block=e("div",{style:"border:2.5px solid "+u.color+";border-radius:14px;overflow:hidden;margin-bottom:8px;"});
+        block.append(e("div",{style:"display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:"+u.light+";"},
+          e("span",{style:"font-size:22px;font-weight:800;color:#1e293b;"},c.icon+"  "+c.label),
+          e("div",{style:"display:flex;align-items:center;gap:8px;"},selC>0?e("span",{style:"background:"+u.color+";color:#fff;font-size:14px;font-weight:800;padding:3px 8px;border-radius:8px;"},"已選 "+selC):null,e("button",{style:"background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;",onclick:()=>{F.openCats=Object.assign({},openCats,{[c.id]:false});render();}},"✕"))
+        ));
+        const tg=e("div",{style:"display:grid;grid-template-columns:repeat(var(--cols-item),1fr);gap:8px;padding:12px;"});
+        allItems.forEach(l=>tg.append(makeTile(l)));
+        block.append(tg);itemsWrap.append(block);
+      });
+    }
+    body.append(sec("器械品項"+(total>0?" （已選 "+total+" 件）":""),true,itemsWrap));
+  }
+
+  const noteEl=e("textarea",{style:"width:100%;padding:12px;border:2.5px solid #d1d5db;border-radius:12px;font-size:22px;font-family:inherit;resize:none;",rows:"2",placeholder:"備註…"});
+  noteEl.value=note;noteEl.addEventListener("input",ev=>{F.note=ev.target.value;});
+  body.append(sec("備註（選填）",false,noteEl));
+
+  const sb=e("button",{style:"width:100%;padding:16px;background:"+(canSubmit?u.color:"#9ca3af")+";color:#fff;border:none;border-radius:12px;font-size:26px;font-weight:900;",onclick:async()=>{
+    if(!canSubmit) return;
+    try{await addDoc(collection(db,"orders"),{unitId:S.unitId,unitLabel:u.label,sub:F.sub,urgent:F.urgent,items:Object.entries(F.cart).map(([label,qty])=>({label,qty})),note:F.note,time:now(),status:"待清洗",ts:Date.now()});F.done=true;render();}catch(err){alert("送出失敗："+err.message);}
+  }},"送出送洗申請");
+  if(!canSubmit) sb.disabled=true;
+  body.append(sb);
+  root.append(body);
+  return root;
+}
+
+/* ─── CSSD ADMIN ─── */
+function renderCssd() {
+  let utF="全部",urgO=false,showExp=false,tabF="全部";
+  let dFrom=today(),dTo=today();
+
+  function build() {
+    const orders=S.orders;
+    const sorted=[...orders].sort((a,b)=>{if(a.urgent==="急件"&&b.urgent!=="急件")return -1;if(b.urgent==="急件"&&a.urgent!=="急件")return 1;return(b.ts||0)-(a.ts||0);});
+    const getCI=o=>(o.items||[]).filter(it=>CLOTH_SET.has(it.label));
+    const getOI=o=>(o.items||[]).filter(it=>!CLOTH_SET.has(it.label));
+
+    const shown=sorted.filter(o=>{
+      if(utF!=="全部"&&o.unitId!==utF) return false;
+      if(urgO&&o.urgent!=="急件") return false;
+      if(tabF==="包布類"&&getCI(o).length===0) return false;
+      if(tabF==="管帶區"&&getOI(o).length===0) return false;
+      return true;
+    });
+    const getDisplayItems=o=>tabF==="包布類"?getCI(o):tabF==="管帶區"?getOI(o):(o.items||[]);
+
+    const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+    root.append(e("div",{style:"background:#1e293b;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+      e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+      e("div",{style:"font-size:26px;font-weight:800;"},"📋 供應室管理"),
+      e("div",{style:"display:flex;gap:6px;"},
+        e("button",{style:"background:rgba(239,68,68,.3);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:22px;font-weight:700;",onclick:async()=>{
+          const done=S.orders.filter(o=>{const ci=getCI(o);const oi=getOI(o);return(ci.length===0||o.statusCloth==="等待送回"||o.statusCloth===true)&&(oi.length===0||o.statusOther==="等待送回"||o.statusOther===true);});
+          if(!done.length){alert("目前沒有兩邊都到等待送回的記錄");return;}
+          if(!confirm("確定要清除全部 "+done.length+" 筆？（會備份到報表）")) return;
+          await archiveAndDelete(done);alert("已清除並備份！");
+        }},"🗑️ 清除"),
+        e("button",{style:"background:rgba(16,185,129,.25);color:#fff;border:none;border-radius:8px;padding:8px 10px;font-size:22px;font-weight:700;",onclick:()=>{showExp=!showExp;rerender();}},"📥 報表")
+      )
+    ));
+
+    const body=e("div",{style:"padding:12px 12px 50px;"});
+
+    if(showExp){
+      const eb=e("div",{style:"background:#fff;border:2px solid #10b981;border-radius:12px;padding:14px;margin-bottom:12px;"});
+      eb.append(e("div",{style:"font-size:26px;font-weight:800;color:#065f46;margin-bottom:8px;"},"📥 下載報表"));
+      const qr=e("div",{style:"display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;"});
+      [["今天","today"],["本週","week"],["本月","month"]].forEach(([l,k])=>{qr.append(e("button",{style:"padding:8px 16px;border:2px solid #10b981;border-radius:20px;background:#ecfdf5;color:#065f46;font-size:22px;font-weight:700;",onclick:()=>{const t=new Date(),p=n=>String(n).padStart(2,"0"),fmt=d=>d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate());if(k==="today"){dFrom=fmt(t);dTo=fmt(t);}if(k==="week"){const m=new Date(t);m.setDate(t.getDate()-t.getDay()+1);dFrom=fmt(m);dTo=fmt(t);}if(k==="month"){dFrom=fmt(new Date(t.getFullYear(),t.getMonth(),1));dTo=fmt(t);}rerender();}},l));});
+      eb.append(qr);
+      const dr=e("div",{style:"display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;"});
+      const dFI=e("input",{type:"date",style:"border:2px solid #d1d5db;border-radius:8px;padding:8px;font-size:22px;font-family:inherit;",value:dFrom});
+      const dTI=e("input",{type:"date",style:"border:2px solid #d1d5db;border-radius:8px;padding:8px;font-size:22px;font-family:inherit;",value:dTo});
+      dFI.addEventListener("change",ev=>{dFrom=ev.target.value;rerender();});dTI.addEventListener("change",ev=>{dTo=ev.target.value;rerender();});
+      dr.append(e("span",{style:"font-size:22px;font-weight:700;"},"從"),dFI,e("span",{style:"font-size:22px;font-weight:700;"},"至"),dTI);
+      eb.append(dr);
+      const dlRow=e("div",{style:"display:flex;gap:8px;flex-wrap:wrap;"});
+      dlRow.append(e("button",{style:"flex:1;min-width:140px;padding:12px;background:#10b981;color:#fff;border:none;border-radius:10px;font-size:22px;font-weight:800;",onclick:async()=>{
+        const arch=await getDocs(collection(db,"orders_archive"));
+        const all=[...orders,...arch.docs.map(d=>({_id:d.id,...d.data()}))].filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+        if(!all.length){alert("無資料");return;}
+        const groups={};all.forEach(o=>{const k=(o.unitLabel||"")+"_"+(o.sub||"");if(!groups[k])groups[k]={unitLabel:o.unitLabel||"",sub:o.sub||"",orders:[]};groups[k].orders.push(o);});
+        let csv="\uFEFF";Object.values(groups).forEach(g=>{csv+='"【'+g.unitLabel+" - "+g.sub+'】"\r\n"單號","時間","送洗單位","緊急程度","器械名稱","數量","備註"\r\n';g.orders.forEach(o=>{(o.items||[]).forEach((it,i)=>{csv+=[i===0?'"'+(o._id||"")+'"':'""',i===0?'"'+(o.time||"")+'"':'""',i===0?'"'+(o.sub||"")+'"':'""',i===0?'"'+(o.urgent||"")+'"':'""','"'+it.label+'"','"'+it.qty+'"',i===0?'"'+(o.note||"")+'"':'""'].join(",")+"\r\n";});});csv+="\r\n";});
+        const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="CSSD_明細_"+dFrom+"_"+dTo+".csv";a.click();
+      }},"⬇️ 明細（全部）"));
+
+      // 包布類明細
+      dlRow.append(e("button",{style:"flex:1;min-width:140px;padding:12px;background:#f59e0b;color:#fff;border:none;border-radius:10px;font-size:22px;font-weight:800;",onclick:async()=>{
+        const arch=await getDocs(collection(db,"orders_archive"));
+        const all=[...orders,...arch.docs.map(d=>({_id:d.id,...d.data()}))].filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+        if(!all.length){alert("無資料");return;}
+        const groups={};
+        all.forEach(o=>{
+          const clothItems=(o.items||[]).filter(it=>CLOTH_SET.has(it.label));
+          if(!clothItems.length) return;
+          const k=(o.unitLabel||"")+"_"+(o.sub||"");
+          if(!groups[k])groups[k]={unitLabel:o.unitLabel||"",sub:o.sub||"",orders:[]};
+          groups[k].orders.push({...o,items:clothItems});
+        });
+        if(!Object.keys(groups).length){alert("所選範圍內沒有包布類資料");return;}
+        let csv="\uFEFF";Object.values(groups).forEach(g=>{csv+='"【'+g.unitLabel+" - "+g.sub+'】"\r\n"單號","時間","送洗單位","緊急程度","器械名稱","數量","備註"\r\n';g.orders.forEach(o=>{(o.items||[]).forEach((it,i)=>{csv+=[i===0?'"'+(o._id||"")+'"':'""',i===0?'"'+(o.time||"")+'"':'""',i===0?'"'+(o.sub||"")+'"':'""',i===0?'"'+(o.urgent||"")+'"':'""','"'+it.label+'"','"'+it.qty+'"',i===0?'"'+(o.note||"")+'"':'""'].join(",")+"\r\n";});});csv+="\r\n";});
+        const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="CSSD_包布類明細_"+dFrom+"_"+dTo+".csv";a.click();
+      }},"🧺 明細（包布）"));
+
+      // 管帶區明細
+      dlRow.append(e("button",{style:"flex:1;min-width:140px;padding:12px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:22px;font-weight:800;",onclick:async()=>{
+        const arch=await getDocs(collection(db,"orders_archive"));
+        const all=[...orders,...arch.docs.map(d=>({_id:d.id,...d.data()}))].filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+        if(!all.length){alert("無資料");return;}
+        const groups={};
+        all.forEach(o=>{
+          const otherItems=(o.items||[]).filter(it=>!CLOTH_SET.has(it.label));
+          if(!otherItems.length) return;
+          const k=(o.unitLabel||"")+"_"+(o.sub||"");
+          if(!groups[k])groups[k]={unitLabel:o.unitLabel||"",sub:o.sub||"",orders:[]};
+          groups[k].orders.push({...o,items:otherItems});
+        });
+        if(!Object.keys(groups).length){alert("所選範圍內沒有管帶區資料");return;}
+        let csv="\uFEFF";Object.values(groups).forEach(g=>{csv+='"【'+g.unitLabel+" - "+g.sub+'】"\r\n"單號","時間","送洗單位","緊急程度","器械名稱","數量","備註"\r\n';g.orders.forEach(o=>{(o.items||[]).forEach((it,i)=>{csv+=[i===0?'"'+(o._id||"")+'"':'""',i===0?'"'+(o.time||"")+'"':'""',i===0?'"'+(o.sub||"")+'"':'""',i===0?'"'+(o.urgent||"")+'"':'""','"'+it.label+'"','"'+it.qty+'"',i===0?'"'+(o.note||"")+'"':'""'].join(",")+"\r\n";});});csv+="\r\n";});
+        const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="CSSD_管帶區明細_"+dFrom+"_"+dTo+".csv";a.click();
+      }},"🔧 明細（管帶）"));
+      dlRow.append(e("button",{style:"flex:1;min-width:140px;padding:12px;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:22px;font-weight:800;",onclick:async()=>{
+        const arch=await getDocs(collection(db,"orders_archive"));
+        const all=[...orders,...arch.docs.map(d=>({_id:d.id,...d.data()}))].filter(o=>{const d=(o.time||"").slice(0,10).replace(/\//g,"-");return(!dFrom||d>=dFrom)&&(!dTo||d<=dTo);});
+        if(!all.length){alert("無資料");return;}
+
+        // 收集所有單位和品項
+        const unitSet=new Set(), itemSet=new Set();
+        const matrix={}; // matrix[item][unit] = qty
+        all.forEach(o=>{
+          const unitKey=(o.sub||o.unitLabel||"");
+          unitSet.add(unitKey);
+          (o.items||[]).forEach(it=>{
+            itemSet.add(it.label);
+            if(!matrix[it.label]) matrix[it.label]={};
+            matrix[it.label][unitKey]=(matrix[it.label][unitKey]||0)+Number(it.qty);
+          });
+        });
+        const units=[...unitSet].sort();
+        const items=[...itemSet].sort();
+
+        // 建立橫向=單位、縱向=品項的表格
+        let csv="\uFEFF";
+        // 標題列
+        csv+='"品項\\單位",' + units.map(u=>'"'+u+'"').join(",") + ',"合計"\r\n';
+        // 每個品項一列
+        items.forEach(item=>{
+          const row=['"'+item+'"'];
+          let total=0;
+          units.forEach(u=>{
+            const qty=matrix[item]?.[u]||0;
+            total+=qty;
+            row.push('"'+qty+'"');
+          });
+          row.push('"'+total+'"');
+          csv+=row.join(",")+"\r\n";
+        });
+        // 合計列
+        const totalRow=['"合計"'];
+        let grandTotal=0;
+        units.forEach(u=>{
+          let colTotal=0;
+          items.forEach(item=>{colTotal+=(matrix[item]?.[u]||0);});
+          grandTotal+=colTotal;
+          totalRow.push('"'+colTotal+'"');
+        });
+        totalRow.push('"'+grandTotal+'"');
+        csv+=totalRow.join(",")+"\r\n";
+
+        const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8;"}));a.download="CSSD_品項統計_"+dFrom+"_"+dTo+".csv";a.click();
+      }},"📊 品項統計（單位×品項）"));
+      eb.append(dlRow);body.append(eb);
+    }
+
+    // Tabs
+    const tabRow=e("div",{style:"display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;"});
+    [["全部","#1e293b"],["包布類","#f59e0b"],["管帶區","#2563eb"],["廠商","#b45309"]].forEach(([t,c])=>{tabRow.append(e("button",{style:"flex:1;padding:12px;border:none;border-radius:10px;font-size:22px;font-weight:900;background:"+(tabF===t?c:"#fff")+";color:"+(tabF===t?"#fff":"#374151")+";box-shadow:0 2px 6px rgba(0,0,0,.07);",onclick:()=>{tabF=t;rerender();}},t==="包布類"?"🧺 包布類":t==="管帶區"?"🔧 管帶區":t==="廠商"?"🏭 廠商":"📋 全部"));});
+    body.append(tabRow);
+
+    // Unit filter
+    const fb=e("div",{style:"background:#fff;border-radius:12px;padding:10px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);"});
+    const ur=e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
+    ur.append(e("button",{style:"padding:6px 12px;border:"+(utF==="全部"?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(utF==="全部"?"#1e293b":"#f9fafb")+";color:"+(utF==="全部"?"#fff":"#374151")+";font-size:22px;font-weight:700;",onclick:()=>{utF="全部";rerender();}},"全部單位"));
+    UNITS.forEach(u=>{ur.append(e("button",{style:"padding:6px 12px;border:"+(utF===u.id?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(utF===u.id?u.color:"#f9fafb")+";color:"+(utF===u.id?"#fff":"#374151")+";font-size:22px;font-weight:700;",onclick:()=>{utF=u.id;rerender();}},u.icon+" "+u.label));});
+    ur.append(e("button",{style:"padding:6px 12px;border:"+(urgO?"none":"2px solid #d1d5db")+";border-radius:20px;background:"+(urgO?"#ef4444":"#f9fafb")+";color:"+(urgO?"#fff":"#374151")+";font-size:22px;font-weight:700;",onclick:()=>{urgO=!urgO;rerender();}},"🔴 急件"));
+    fb.append(ur);body.append(fb);
+
+    if(!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:26px;"},"目前沒有符合條件的記錄"));
+
+    const makeCard=(order,displayItems,section)=>{
+      const u2=uInfo(order.unitId);
+      const ci=getCI(order),oi=getOI(order);
+      const cDone=ci.length===0||order.statusCloth==="等待送回"||order.statusCloth===true;
+      const oDone=oi.length===0||order.statusOther==="等待送回"||order.statusOther===true;
+      let isDone;
+      if(section==="包布類") isDone=order.statusCloth==="等待送回"||order.statusCloth===true;
+      else if(section==="管帶區") isDone=order.statusOther==="等待送回"||order.statusOther===true;
+      else isDone=cDone&&oDone;
+
+      const card=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:5px solid "+(order.urgent==="急件"?"#ef4444":isDone?"#10b981":"#f59e0b")+";"});
+      const hdr=e("div",{style:"display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;"});
+      const bdg=e("div",{style:"display:flex;gap:6px;flex-wrap:wrap;"});
+      bdg.append(e("span",{style:"background:"+u2.color+";color:#fff;font-size:22px;font-weight:700;padding:4px 10px;border-radius:12px;"},u2.icon+" "+u2.label));
+      if(order.urgent==="急件") bdg.append(e("span",{style:"background:#ef4444;color:#fff;font-size:22px;font-weight:700;padding:4px 10px;border-radius:12px;"},"🔴 急件"));
+      hdr.append(bdg,e("span",{style:"font-size:20px;color:#9ca3af;white-space:nowrap;margin-left:4px;"},order.time||""));
+      card.append(hdr);
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:8px;font-weight:600;"},"📍 "+(order.sub||"")));
+      const il=e("div",{style:"display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"});
+      displayItems.forEach(it=>il.append(e("span",{style:"border:2px solid "+u2.color+";border-radius:8px;padding:4px 10px;font-size:22px;font-weight:700;color:"+u2.color+";"},it.label+" × "+it.qty)));
+      card.append(il);
+      if(order.note) card.append(e("div",{style:"font-size:20px;color:#6b7280;font-style:italic;"},"📝 "+order.note));
+      return card;
+    };
+
+    if(tabF==="廠商"){
+      const vbody=e("div",{});
+      vbody.append(e("div",{style:"text-align:center;color:#9ca3af;padding:20px;font-size:22px;"},"⏳ 載入廠商資料…"));
+      body.append(vbody);
+      getDocs(query(collection(db,"vendor_orders"),orderBy("ts","desc"))).then(snap=>{
+        vbody.innerHTML="";
+        const vorders=snap.docs.map(d=>({_id:d.id,...d.data()}));
+        if(!vorders.length){vbody.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:24px;"},"目前沒有廠商送洗記錄"));return;}
+        vorders.forEach(o=>{
+          const vc=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:5px solid "+(o.status==="已完成"?"#10b981":"#b45309")+";"});
+          vc.append(e("div",{style:"display:flex;justify-content:space-between;margin-bottom:8px;"},e("span",{style:"background:"+(o.status==="已完成"?"#10b981":"#b45309")+";color:#fff;font-size:20px;font-weight:700;padding:4px 12px;border-radius:10px;"},o.status||"待處理"),e("span",{style:"font-size:18px;color:#9ca3af;"},o.time2||"")));
+          vc.append(e("div",{style:"font-size:22px;font-weight:800;color:#1e293b;margin-bottom:4px;"},"🏭 "+o.vendorName));
+          vc.append(e("div",{style:"font-size:20px;color:#374151;margin-bottom:2px;"},"👤 "+o.contact+"　📞 "+o.phone));
+          vc.append(e("div",{style:"font-size:20px;color:#374151;margin-bottom:2px;"},"🔧 "+o.itemType));
+          vc.append(e("div",{style:"font-size:20px;color:#374151;margin-bottom:10px;"},"📅 寄銷："+o.date+(o.time?" "+o.time:"")+"　預計使用："+o.useDate));
+          if(o.status!=="已完成"){vc.append(e("button",{style:"width:100%;padding:12px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:24px;font-weight:900;",onclick:()=>updateDoc(doc(db,"vendor_orders",o._id),{status:"已完成"})},"✅ 已完成"));}
+          else{vc.append(e("div",{style:"width:100%;padding:12px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:24px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));}
+          vbody.append(vc);
+        });
+      });
+    } else {
+      if(!shown.length) body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:48px 0;font-size:26px;"},"目前沒有符合條件的記錄"));
+      shown.forEach(order=>body.append(makeCard(order,getDisplayItems(order),tabF)));
+    }
+    root.append(body);
+    return root;
+  }
+
+  function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
+  return build();
+}
+
+/* ─── HISTORY ─── */
+async function renderHistory() {
+  const sub=S.histSub,unitId=S.histUnitId,u=uInfo(unitId);
+  const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:"+u.color+";color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="form";render();}},"← 返回"),
+    e("div",{style:"font-size:26px;font-weight:800;"},u.icon+" "+sub+" 歷史申請"),
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"🏠 首頁")
+  ));
+  const body=e("div",{style:"padding:14px 14px 50px;"});
+  body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:26px;"},"⏳ 載入中…"));
+  root.append(body);
+  const [s1,s2]=await Promise.all([getDocs(collection(db,"orders")),getDocs(collection(db,"orders_archive"))]);
+  const all=[...s1.docs.map(d=>({_id:d.id,...d.data()})),...s2.docs.map(d=>({_id:d.id,...d.data()}))].filter(o=>o.sub===sub&&o.unitId===unitId).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  body.innerHTML="";
+  if(!all.length){body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:26px;"},"尚無歷史申請記錄"));return root;}
+  body.append(e("div",{style:"font-size:22px;color:#6b7280;margin-bottom:12px;"},"共 "+all.length+" 筆記錄"));
+  all.forEach(o=>{
+    const card=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.06);"});
+    card.append(e("div",{style:"display:flex;justify-content:space-between;margin-bottom:8px;"},e("span",{style:"font-size:22px;font-weight:800;"},o.urgent==="急件"?"🔴 急件":"🟢 一般"),e("span",{style:"font-size:20px;color:#9ca3af;"},o.time||"")));
+    const il=e("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"});
+    (o.items||[]).forEach(it=>il.append(e("span",{style:"border:2px solid "+u.color+";border-radius:8px;padding:4px 10px;font-size:22px;font-weight:700;color:"+u.color+";"},it.label+" × "+it.qty)));
+    card.append(il);
+    if(o.note) card.append(e("div",{style:"font-size:20px;color:#6b7280;font-style:italic;"},"📝 "+o.note));
+    body.append(card);
+  });
+  return root;
+}
+
+/* ─── SETTINGS ─── */
+function renderSettings() {
+  let tab="ward";
+  function build(){
+    const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+    root.append(e("div",{style:"background:#475569;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+      e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+      e("div",{style:"font-size:26px;font-weight:800;"},"⚙️ 總設定"),
+      e("button",{style:"background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"🏠 首頁")
+    ));
+    const body=e("div",{style:"padding:14px 14px 50px;"});
+    const tr=e("div",{style:"display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;"});
+    [["ward","🏥 病房"],["opd","⚕️ 門診"],["other","🏪 其他"],["items","🔧 器械"]].forEach(([id,label])=>{tr.append(e("button",{style:"padding:10px 16px;border:none;border-radius:10px;font-size:24px;font-weight:800;background:"+(tab===id?"#475569":"#fff")+";color:"+(tab===id?"#fff":"#374151")+";",onclick:()=>{tab=id;rerender();}},label));});
+    body.append(tr);
+
+    if(tab==="ward"||tab==="opd"){
+      const baseUnit=tab==="ward"?WARD_UNIT:OPD_UNIT;
+      const extra=getCustom("subs_"+tab,[]);
+      const all=[...baseUnit.subs,...extra];
+      const sl=e("div",{style:"background:#fff;border-radius:12px;padding:12px;margin-bottom:14px;"});
+      all.forEach((sub,i)=>{const row=e("div",{style:"display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;"});row.append(e("span",{style:"font-size:24px;font-weight:600;"},sub));if(i>=baseUnit.subs.length){row.append(e("button",{style:"background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 12px;font-size:22px;font-weight:700;",onclick:()=>{setCustom("subs_"+tab,extra.filter(s=>s!==sub));rerender();}},"🗑️"));}else{row.append(e("span",{style:"font-size:18px;color:#9ca3af;"},"預設"));}sl.append(row);});
+      body.append(e("div",{style:"font-size:26px;font-weight:800;margin-bottom:8px;"},"目前子單位"),sl);
+      const ar=e("div",{style:"display:flex;gap:8px;"});
+      const inp=e("input",{type:"text",style:"flex:1;padding:10px;border:2px solid #d1d5db;border-radius:10px;font-size:24px;font-family:inherit;",placeholder:"輸入新單位名稱…"});
+      ar.append(inp,e("button",{style:"padding:10px 18px;background:#475569;color:#fff;border:none;border-radius:10px;font-size:24px;font-weight:800;",onclick:()=>{const v=inp.value.trim();if(!v)return;if(all.includes(v)){alert("已存在");return;}setCustom("subs_"+tab,[...extra,v]);rerender();}},"＋ 新增"));
+      body.append(e("div",{style:"font-size:26px;font-weight:800;margin-bottom:8px;"},"新增子單位"),ar);
+    }
+    if(tab==="other"){
+      const extra=getCustom("extra_units",[]);
+      const ul=e("div",{style:"background:#fff;border-radius:12px;padding:12px;margin-bottom:14px;"});
+      [...OTHER_UNITS.map(u=>({...u,def:true})),...extra.map(u=>({...u,def:false}))].forEach(u=>{const row=e("div",{style:"display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;"});row.append(e("span",{style:"font-size:24px;font-weight:600;"},u.icon+" "+u.label));if(!u.def){row.append(e("button",{style:"background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 12px;font-size:22px;font-weight:700;",onclick:()=>{setCustom("extra_units",extra.filter(x=>x.label!==u.label));rerender();}},"🗑️"));}else{row.append(e("span",{style:"font-size:18px;color:#9ca3af;"},"預設"));}ul.append(row);});
+      body.append(e("div",{style:"font-size:26px;font-weight:800;margin-bottom:8px;"},"目前其他單位"),ul);
+      const ar=e("div",{style:"display:flex;gap:8px;"});
+      const inp=e("input",{type:"text",style:"flex:1;padding:10px;border:2px solid #d1d5db;border-radius:10px;font-size:24px;font-family:inherit;",placeholder:"輸入新單位名稱…"});
+      ar.append(inp,e("button",{style:"padding:10px 18px;background:#475569;color:#fff;border:none;border-radius:10px;font-size:24px;font-weight:800;",onclick:()=>{const v=inp.value.trim();if(!v)return;const nu={id:"c_"+Date.now(),label:v,icon:"🏢",color:"#64748b",light:"#f8fafc",subs:[v]};setCustom("extra_units",[...extra,nu]);rerender();}},"＋ 新增"));
+      body.append(e("div",{style:"font-size:26px;font-weight:800;margin-bottom:8px;"},"新增其他單位"),ar);
+    }
+    if(tab==="items"){
+      CATS.forEach(c=>{
+        const extra=getCustom("items_"+c.id,[]);
+        const block=e("div",{style:"background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;"});
+        block.append(e("div",{style:"font-size:24px;font-weight:800;margin-bottom:8px;"},c.icon+" "+c.label));
+        const il=e("div",{style:"display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"});
+        [...c.items,...extra].forEach(item=>{const tag=e("div",{style:"display:flex;align-items:center;gap:4px;background:#f1f5f9;border-radius:8px;padding:4px 8px;"});tag.append(e("span",{style:"font-size:20px;"},item));if(extra.includes(item)){tag.append(e("button",{style:"background:none;border:none;color:#dc2626;font-size:18px;cursor:pointer;",onclick:()=>{setCustom("items_"+c.id,extra.filter(i=>i!==item));rerender();}},"✕"));}il.append(tag);});
+        block.append(il);
+        const ar=e("div",{style:"display:flex;gap:8px;"});
+        const inp=e("input",{type:"text",style:"flex:1;padding:8px;border:2px solid #d1d5db;border-radius:8px;font-size:22px;font-family:inherit;",placeholder:"新增品項…"});
+        ar.append(inp,e("button",{style:"padding:8px 14px;background:#475569;color:#fff;border:none;border-radius:8px;font-size:22px;font-weight:800;",onclick:()=>{const v=inp.value.trim();if(!v)return;if([...c.items,...extra].includes(v)){alert("已存在");return;}setCustom("items_"+c.id,[...extra,v]);rerender();}},"＋"));
+        block.append(ar);body.append(block);
+      });
+    }
+    root.append(body);return root;
+  }
+  function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
+  return build();
+}
+
+/* ─── VENDOR FORM ─── */
+function renderVendor() {
+  let VF={date:today(),time:"",vendorName:"",contact:"",phone:"",itemType:"",useDate:"",done:false};
+  function build(){
+    const root=e("div",{style:"min-height:100vh;background:#fff7ed;"});
+
+    // Header
+    root.append(e("div",{style:"background:linear-gradient(135deg,#b45309,#d97706);color:#fff;padding:24px 20px;text-align:center;box-shadow:0 4px 12px rgba(180,83,9,.3);position:relative;"},
+      e("button",{style:"position:absolute;left:14px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:22px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+      e("div",{style:"font-size:44px;margin-bottom:6px;"},"🏭"),
+      e("div",{style:"font-size:28px;font-weight:900;"},"院外廠商送洗登記"),
+      e("div",{style:"font-size:20px;color:#fde68a;margin-top:4px;"},"天主教耕莘醫療財團法人耕莘醫院 供應室")
+    ));
+
+    // 管理入口（右上小按鈕）
+    const mgBtn=e("button",{style:"position:fixed;top:14px;right:14px;background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:20px;font-weight:700;z-index:20;",onclick:()=>{const pw=prompt("請輸入供應室密碼：");if(pw==="2600"){S.view="vendor_cssd";render();}else if(pw!==null)alert("密碼錯誤！");}},
+      "📋 管理"
+    );
+    root.append(mgBtn);
+
+    if(VF.done){
+      root.append(e("div",{style:"display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;"},
+        e("div",{style:"font-size:80px;margin-bottom:16px;"},"✅"),
+        e("div",{style:"font-size:28px;font-weight:900;color:#065f46;margin-bottom:8px;"},"送洗申請已送出！"),
+        e("div",{style:"font-size:22px;color:#6b7280;margin-bottom:24px;"},"供應室已收到通知，謝謝！"),
+        e("button",{style:"padding:16px 40px;background:#b45309;color:#fff;border:none;border-radius:14px;font-size:24px;font-weight:800;",onclick:()=>{VF={date:today(),time:"",vendorName:"",contact:"",phone:"",itemType:"",useDate:"",done:false};rerender();}},"再次登記"),
+        e("button",{style:"margin-top:10px;padding:12px 40px;background:#fff;color:#b45309;border:2px solid #b45309;border-radius:14px;font-size:22px;font-weight:700;",onclick:()=>{S.view="home";render();}},"返回首頁")
+      ));
+      return root;
+    }
+
+    const body=e("div",{style:"padding:20px 16px 60px;"});
+
+    // Card wrapper
+    const card=e("div",{style:"background:#fff;border-radius:20px;padding:24px;box-shadow:0 4px 20px rgba(180,83,9,.1);border:2px solid #fed7aa;"});
+
+    const field=(icon,label,req,content)=>{
+      const wrap=e("div",{style:"margin-bottom:20px;"});
+      wrap.append(e("div",{style:"display:flex;align-items:center;gap:8px;margin-bottom:8px;"},
+        e("span",{style:"font-size:22px;"},icon),
+        e("span",{style:"font-size:22px;font-weight:800;color:#1e293b;"},label),
+        req?e("span",{style:"color:#ef4444;font-size:18px;"},"*"):null
+      ));
+      wrap.append(content);
+      return wrap;
+    };
+
+    const inp=(ph,val,key,type="text")=>{
+      const el=e("input",{type,style:"width:100%;padding:14px 16px;border:2px solid #e5e7eb;border-radius:12px;font-size:22px;font-family:inherit;background:#f9fafb;",placeholder:ph,value:val});
+      el.addEventListener("input",ev=>{VF[key]=ev.target.value;});
+      el.addEventListener("change",ev=>{VF[key]=ev.target.value;});
+      return el;
+    };
+
+    // 日期時間一排
+    const dateTimeRow=e("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"});
+    dateTimeRow.append(
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"📅"),e("span",{style:"font-size:22px;font-weight:800;"},"寄銷日期"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("",VF.date,"date","date")
+      ),
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"🕐"),e("span",{style:"font-size:22px;font-weight:800;"},"時間"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("14:30",VF.time,"time")
+      )
+    );
+    card.append(dateTimeRow);
+
+    card.append(field("🏭","廠商名稱",true,inp("請輸入廠商名稱",VF.vendorName,"vendorName")));
+    
+    // 聯絡人電話一排
+    const contactRow=e("div",{style:"display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;"});
+    contactRow.append(
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"👤"),e("span",{style:"font-size:22px;font-weight:800;"},"聯絡人"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("聯絡人姓名",VF.contact,"contact")
+      ),
+      e("div",{},
+        e("div",{style:"display:flex;align-items:center;gap:6px;margin-bottom:8px;"},e("span",{},"📞"),e("span",{style:"font-size:22px;font-weight:800;"},"電話"),e("span",{style:"color:#ef4444;font-size:18px;"},"*")),
+        inp("聯絡電話",VF.phone,"phone")
+      )
+    );
+    card.append(contactRow);
+
+    card.append(field("🔧","器械種類",true,inp("請輸入器械種類名稱",VF.itemType,"itemType")));
+    card.append(field("📆","器械預計使用日期",true,inp("",VF.useDate,"useDate","date")));
+
+    body.append(card);
+
+    const canSubmit=VF.vendorName&&VF.contact&&VF.phone&&VF.itemType&&VF.useDate;
+    const btn=e("button",{
+      style:"width:100%;margin-top:16px;padding:18px;background:"+(canSubmit?"linear-gradient(135deg,#b45309,#d97706)":"#9ca3af")+";color:#fff;border:none;border-radius:14px;font-size:26px;font-weight:900;",
+      onclick:async()=>{
+        if(!canSubmit){alert("請填寫所有必填欄位（*）");return;}
+        try{
+          await addDoc(collection(db,"vendor_orders"),{date:VF.date,time:VF.time,vendorName:VF.vendorName,contact:VF.contact,phone:VF.phone,itemType:VF.itemType,useDate:VF.useDate,status:"待處理",ts:Date.now(),time2:now()});
+          VF.done=true;rerender();
+        }catch(err){alert("送出失敗："+err.message);}
+      }
+    },"送出送洗申請 →");
+    body.append(btn);
+    if(!canSubmit) body.append(e("p",{style:"text-align:center;color:#9ca3af;font-size:20px;margin-top:8px;"},"請填寫所有 * 必填欄位"));
+
+    root.append(body);
+    return root;
+  }
+  function rerender(){const app=document.getElementById("app");app.innerHTML="";app.append(build());}
+  return build();
+}
+
+/* ─── VENDOR CSSD ─── */
+function renderVendorCssd() {
+  const root=e("div",{style:"min-height:100vh;background:#f1f5f9;"});
+  root.append(e("div",{style:"background:#b45309;color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;"},
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"← 返回"),
+    e("div",{style:"font-size:26px;font-weight:800;"},"🏭 廠商送洗管理"),
+    e("button",{style:"background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:26px;font-weight:700;",onclick:()=>{S.view="home";render();}},"🏠 首頁")
+  ));
+  const body=e("div",{style:"padding:14px 14px 50px;"});
+  body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:26px;"},"⏳ 載入中…"));
+  root.append(body);
+  onSnapshot(query(collection(db,"vendor_orders"),orderBy("ts","desc")),snap=>{
+    body.innerHTML="";
+    const orders=snap.docs.map(d=>({_id:d.id,...d.data()}));
+    if(!orders.length){body.append(e("div",{style:"text-align:center;color:#9ca3af;padding:40px;font-size:26px;"},"目前沒有廠商送洗記錄"));return;}
+    orders.forEach(o=>{
+      const card=e("div",{style:"background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 5px rgba(0,0,0,.07);border-left:5px solid "+(o.status==="已完成"?"#10b981":"#b45309")+";"});
+      card.append(e("div",{style:"display:flex;justify-content:space-between;margin-bottom:8px;"},e("span",{style:"background:"+(o.status==="已完成"?"#10b981":"#b45309")+";color:#fff;font-size:22px;font-weight:700;padding:4px 12px;border-radius:10px;"},o.status||"待處理"),e("span",{style:"font-size:20px;color:#9ca3af;"},o.time2||"")));
+      card.append(e("div",{style:"font-size:24px;font-weight:800;color:#1e293b;margin-bottom:4px;"},"🏭 "+o.vendorName));
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:4px;"},"👤 "+o.contact+"　📞 "+o.phone));
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:4px;"},"🔧 "+o.itemType));
+      card.append(e("div",{style:"font-size:22px;color:#374151;margin-bottom:10px;"},"📅 寄銷："+o.date+(o.time?" "+o.time:"")+"　預計使用："+o.useDate));
+      if(o.status!=="已完成"){card.append(e("button",{style:"width:100%;padding:14px;border:none;border-radius:10px;background:#10b981;color:#fff;font-size:26px;font-weight:900;",onclick:()=>updateDoc(doc(db,"vendor_orders",o._id),{status:"已完成"})},"✅ 已完成"));}
+      else{card.append(e("div",{style:"width:100%;padding:14px;border-radius:10px;background:#f0fdf4;color:#10b981;font-size:26px;font-weight:900;text-align:center;border:2px solid #86efac;"},"✅ 已完成"));}
+      body.append(card);
+    });
+  });
+  return root;
+}
+
+render();
+</script>
+</body>
+</html>
